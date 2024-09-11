@@ -25,3 +25,8 @@ tts.tts_to_file(text="hello world",
                 language="en")
 
 ```
+
+## TODO
+
+- [ ] refactoring code
+- [ ] improve performance
