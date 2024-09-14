@@ -5,9 +5,7 @@ from collections import namedtuple
 import math
 import random
 import os
-from functools import cached_property
 import re
-# from packaging import version
 from dataclasses import dataclass, field, fields
 
 import torch
@@ -15,28 +13,22 @@ import torchaudio
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import einsum
-from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils.parametrizations import weight_norm
 from torch.nn.utils.parametrize import remove_parametrizations
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from tokenizers import Tokenizer
-from num2words import num2words
 
-from transformers import GPT2Config, GPT2Model
-
-from transformers import GPT2PreTrainedModel
+from transformers import GPT2Config, GPT2Model, GPT2PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
-from spacy.lang.en import English
-import textwrap
-
 import numpy as np
-import librosa
 from scipy.io.wavfile import read
+from spacy.lang.en import English
 
-# import fsspec
+from num2words import num2words
+import textwrap
 
 LRELU_SLOPE = 0.1
 
@@ -57,8 +49,6 @@ def load_wav_to_torch(full_path):
 
 
 def check_audio(audio, audiopath: str):
-    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
-    # '2' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
     if torch.any(audio > 2) or not torch.any(audio < 0):
         print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
     audio.clip_(-1, 1)
@@ -67,9 +57,9 @@ def check_audio(audio, audiopath: str):
 def read_audio_file(audiopath: str):
     if audiopath[-4:] == ".wav":
         audio, lsr = load_wav_to_torch(audiopath)
-    elif audiopath[-4:] == ".mp3":
-        audio, lsr = librosa.load(audiopath, sr=None)
-        audio = torch.FloatTensor(audio)
+    # elif audiopath[-4:] == ".mp3":
+    #     audio, lsr = librosa.load(audiopath, sr=None)
+    #     audio = torch.FloatTensor(audio)
     else:
         assert False, f"Unsupported audio format provided: {audiopath[-4:]}"
 
@@ -201,27 +191,6 @@ def get_user_data_dir(appname):
     return ans.joinpath(appname)
 
 
-def load_fsspec(
-    path,
-    map_location,
-    cache=True,
-    **kwargs,
-):
-    """Like torch.load but can load from other locations (e.g. s3:// , gs://).
-
-    Args:
-        path: Any path or url supported by fsspec.
-        map_location: torch.device or str.
-        cache: If True, cache a remote file locally for subsequent calls. It is cached under `get_user_data_dir()/tts_cache`. Defaults to True.
-        **kwargs: Keyword arguments forwarded to torch.load.
-
-    Returns:
-        Object stored in path.
-    """
-    with open(path, "rb") as f:
-        return torch.load(f, map_location=map_location, **kwargs)
-
-
 def get_padding(k, d):
     return int((k * d - d) / 2)
 
@@ -245,7 +214,7 @@ class ResBlock1(torch.nn.Module):
         super().__init__()
         self.convs1 = nn.ModuleList([
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -254,7 +223,7 @@ class ResBlock1(torch.nn.Module):
                     padding=get_padding(kernel_size, dilation[0]),
                 )),
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -263,7 +232,7 @@ class ResBlock1(torch.nn.Module):
                     padding=get_padding(kernel_size, dilation[1]),
                 )),
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -275,7 +244,7 @@ class ResBlock1(torch.nn.Module):
 
         self.convs2 = nn.ModuleList([
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -284,7 +253,7 @@ class ResBlock1(torch.nn.Module):
                     padding=get_padding(kernel_size, 1),
                 )),
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -293,7 +262,7 @@ class ResBlock1(torch.nn.Module):
                     padding=get_padding(kernel_size, 1),
                 )),
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -346,7 +315,7 @@ class ResBlock2(torch.nn.Module):
         super().__init__()
         self.convs = nn.ModuleList([
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -355,7 +324,7 @@ class ResBlock2(torch.nn.Module):
                     padding=get_padding(kernel_size, dilation[0]),
                 )),
             weight_norm(
-                Conv1d(
+                nn.Conv1d(
                     channels,
                     channels,
                     kernel_size,
@@ -423,7 +392,7 @@ class HifiganGenerator(torch.nn.Module):
 
         # initial upsampling layers
         self.conv_pre = weight_norm(
-            Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
+            nn.Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
         resblock = ResBlock1 if resblock_type == "1" else ResBlock2
         # upsampling layers
         self.ups = nn.ModuleList()
@@ -431,7 +400,7 @@ class HifiganGenerator(torch.nn.Module):
                                        upsample_kernel_sizes)):
             self.ups.append(
                 weight_norm(
-                    ConvTranspose1d(
+                    nn.ConvTranspose1d(
                         upsample_initial_channel // (2**i),
                         upsample_initial_channel // (2**(i + 1)),
                         k,
@@ -447,7 +416,7 @@ class HifiganGenerator(torch.nn.Module):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
         self.conv_post = weight_norm(
-            Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
+            nn.Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
         if cond_channels > 0:
             self.cond_layer = nn.Conv1d(cond_channels,
                                         upsample_initial_channel, 1)
@@ -824,51 +793,6 @@ class ResNetSpeakerEncoder(nn.Module):
             x = torch.nn.functional.normalize(x, p=2, dim=1)
         return x
 
-    def load_checkpoint(
-        self,
-        checkpoint_path: str,
-        eval: bool = False,
-        use_cuda: bool = False,
-        criterion=None,
-        cache=False,
-    ):
-        state = load_fsspec(checkpoint_path,
-                            map_location=torch.device("cpu"),
-                            cache=cache)
-        try:
-            self.load_state_dict(state["model"])
-            print(" > Model fully restored. ")
-        except (KeyError, RuntimeError) as error:
-            # If eval raise the error
-            if eval:
-                raise error
-
-            print(" > Partial model initialization.")
-            model_dict = self.state_dict()
-            model_dict = set_init_dict(model_dict, state["model"])
-            self.load_state_dict(model_dict)
-            del model_dict
-
-        # load the criterion for restore_path
-        if criterion is not None and "criterion" in state:
-            try:
-                criterion.load_state_dict(state["criterion"])
-            except (KeyError, RuntimeError) as error:
-                print(" > Criterion load ignored because of:", error)
-
-        if use_cuda:
-            self.cuda()
-            if criterion is not None:
-                criterion = criterion.cuda()
-
-        if eval:
-            self.eval()
-            assert not self.training
-
-        if not eval:
-            return criterion, state["step"]
-        return criterion
-
 
 class HifiDecoder(torch.nn.Module):
 
@@ -931,19 +855,6 @@ class HifiDecoder(torch.nn.Module):
         return next(self.parameters()).device
 
     def forward(self, latents, g=None):
-        """
-        Args:
-            x (Tensor): feature input tensor (GPT latent).
-            g (Tensor): global conditioning input tensor.
-
-        Returns:
-            Tensor: output waveform.
-
-        Shapes:
-            x: [B, C, T]
-            Tensor: [B, 1, T]
-        """
-
         z = torch.nn.functional.interpolate(
             latents.transpose(1, 2),
             scale_factor=[
@@ -965,34 +876,7 @@ class HifiDecoder(torch.nn.Module):
 
     @torch.no_grad()
     def inference(self, c, g):
-        """
-        Args:
-            x (Tensor): feature input tensor (GPT latent).
-            g (Tensor): global conditioning input tensor.
-
-        Returns:
-            Tensor: output waveform.
-
-        Shapes:
-            x: [B, C, T]
-            Tensor: [B, 1, T]
-        """
         return self.forward(c, g=g)
-
-    def load_checkpoint(self, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
-        # remove unused keys
-        state = state["model"]
-        states_keys = list(state.keys())
-        for key in states_keys:
-            if "waveform_decoder." not in key and "speaker_encoder." not in key:
-                del state[key]
-
-        self.load_state_dict(state)
-        if eval:
-            self.eval()
-            assert not self.training
-            self.waveform_decoder.remove_weight_norm()
 
 
 class GPT2InferenceModel(GPT2PreTrainedModel):
@@ -1114,18 +998,6 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             attentions=transformer_outputs.attentions,
             cross_attentions=transformer_outputs.cross_attentions,
         )
-
-    @staticmethod
-    def _reorder_cache(past, beam_idx):
-        """
-        This function is used to re-order the :obj:`past_key_values` cache if
-        :meth:`~transformers.PreTrainedModel.beam_search` or :meth:`~transformers.PreTrainedModel.beam_sample` is
-        called. This is required to match :obj:`past_key_values` with the correct beam_idx at every generation step.
-        """
-        return tuple(
-            tuple(
-                past_state.index_select(0, beam_idx.to(past_state.device))
-                for past_state in layer_past) for layer_past in past)
 
 
 def Sequential(*mods):
@@ -1425,7 +1297,8 @@ class Attend(nn.Module):
         return mask
 
     def flash_attn(self, q, k, v, mask=None):
-        _, heads, q_len, _, k_len, is_cuda = *q.shape, k.shape[-2], q.is_cuda
+        _, heads, q_len, _, _, is_cuda = *q.shape, k.shape[
+            -2], q.is_cuda  # type: ignore
 
         # Recommended for multi-query single-key-value attention by Tri Dao
         # kv shape torch.Size([1, 512, 64]) -> torch.Size([1, 8, 512, 64])
@@ -1543,7 +1416,8 @@ class Attention(nn.Module):
         if has_context and self.cross_attn_include_queries:
             context = torch.cat((x, context), dim=-2)
 
-        q, k, v = (self.to_q(x), *self.to_kv(context).chunk(2, dim=-1))
+        q, k, v = (self.to_q(x), *self.to_kv(context).chunk(2, dim=-1)
+                   )  # type: ignore
         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h),
                       (q, k, v))
 
@@ -2235,21 +2109,6 @@ _comma_number_re = re.compile(r"\b\d{1,3}(,\d{3})*(\.\d+)?\b")
 
 _ordinal_re = {
     "en": re.compile(r"([0-9]+)(st|nd|rd|th)"),
-    "es": re.compile(r"([0-9]+)(º|ª|er|o|a|os|as)"),
-    "fr": re.compile(r"([0-9]+)(º|ª|er|re|e|ème)"),
-    "de": re.compile(r"([0-9]+)(st|nd|rd|th|º|ª|\.(?=\s|$))"),
-    "pt": re.compile(r"([0-9]+)(º|ª|o|a|os|as)"),
-    "it": re.compile(r"([0-9]+)(º|°|ª|o|a|i|e)"),
-    "pl": re.compile(r"([0-9]+)(º|ª|st|nd|rd|th)"),
-    "ar": re.compile(r"([0-9]+)(ون|ين|ث|ر|ى)"),
-    "cs": re.compile(
-        r"([0-9]+)\.(?=\s|$)"
-    ),  # In Czech, a dot is often used after the number to indicate ordinals.
-    "ru": re.compile(r"([0-9]+)(-й|-я|-е|-ое|-ье|-го)"),
-    "nl": re.compile(r"([0-9]+)(de|ste|e)"),
-    "tr": re.compile(r"([0-9]+)(\.|inci|nci|uncu|üncü|\.)"),
-    "hu": re.compile(r"([0-9]+)(\.|adik|edik|odik|edik|ödik|ödike|ik)"),
-    "ko": re.compile(r"([0-9]+)(번째|번|차|째)"),
 }
 _number_re = re.compile(r"[0-9]+")
 
@@ -2279,17 +2138,6 @@ class BaseTTS(nn.Module):
         self._set_model_args(config)
 
     def _set_model_args(self, config):
-        """Setup model args based on the config type (`ModelConfig` or `ModelArgs`).
-
-        `ModelArgs` has all the fields reuqired to initialize the model architecture.
-
-        `ModelConfig` has all the fields required for training, inference and containes `ModelArgs`.
-
-        If the config is for training with a name like "*Config", then the model args are embeded in the
-        config.model_args
-
-        If the config is for the model with a name like "*Args", then we assign the directly.
-        """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
             config_num_chars = (self.config.model_args["num_chars"] if hasattr(
@@ -2309,362 +2157,6 @@ class BaseTTS(nn.Module):
         else:
             raise ValueError("config must be either a *Config or *Args")
 
-    def get_aux_input(self, **kwargs):
-        """Prepare and return `aux_input` used by `forward()`"""
-        return {
-            "speaker_id": None,
-            "style_wav": None,
-            "d_vector": None,
-            "language_id": None
-        }
-
-    def get_aux_input_from_test_sentences(self, sentence_info):
-        if hasattr(self.config, "model_args"):
-            config = self.config.model_args
-        else:
-            config = self.config
-
-        # extract speaker and language info
-        text, speaker_name, style_wav, language_name = None, None, None, None
-
-        if isinstance(sentence_info, list):
-            if len(sentence_info) == 1:
-                text = sentence_info[0]
-            elif len(sentence_info) == 2:
-                text, speaker_name = sentence_info
-            elif len(sentence_info) == 3:
-                text, speaker_name, style_wav = sentence_info
-            elif len(sentence_info) == 4:
-                text, speaker_name, style_wav, language_name = sentence_info
-        else:
-            text = sentence_info
-
-        # get speaker  id/d_vector
-        speaker_id, d_vector, language_id = None, None, None
-        if self.speaker_manager is not None:
-            if config.use_d_vector_file:
-                if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embedding()
-                else:
-                    d_vector = self.speaker_manager.get_d_vector_by_name(
-                        speaker_name)
-            elif config.use_speaker_embedding:
-                if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_id()
-                else:
-                    speaker_id = self.speaker_manager.name_to_id[speaker_name]
-
-        # get language id
-        if self.language_manager is not None and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.name_to_id[language_name]
-
-        return {
-            "text": text,
-            "speaker_id": speaker_id,
-            "style_wav": style_wav,
-            "d_vector": d_vector,
-            "language_id": language_id,
-        }
-
-    def format_batch(self, batch):
-        """Generic batch formatting for `TTSDataset`.
-
-        You must override this if you use a custom dataset.
-
-        Args:
-            batch (Dict): [description]
-
-        Returns:
-            Dict: [description]
-        """
-        # setup input batch
-        text_input = batch["token_id"]
-        text_lengths = batch["token_id_lengths"]
-        speaker_names = batch["speaker_names"]
-        linear_input = batch["linear"]
-        mel_input = batch["mel"]
-        mel_lengths = batch["mel_lengths"]
-        stop_targets = batch["stop_targets"]
-        item_idx = batch["item_idxs"]
-        d_vectors = batch["d_vectors"]
-        speaker_ids = batch["speaker_ids"]
-        attn_mask = batch["attns"]
-        waveform = batch["waveform"]
-        pitch = batch["pitch"]
-        energy = batch["energy"]
-        language_ids = batch["language_ids"]
-        max_text_length = torch.max(text_lengths.float())
-        max_spec_length = torch.max(mel_lengths.float())
-
-        # compute durations from attention masks
-        durations = None
-        if attn_mask is not None:
-            durations = torch.zeros(attn_mask.shape[0], attn_mask.shape[2])
-            for idx, am in enumerate(attn_mask):
-                # compute raw durations
-                c_idxs = am[:, :text_lengths[idx], :mel_lengths[idx]].max(1)[1]
-                # c_idxs, counts = torch.unique_consecutive(c_idxs, return_counts=True)
-                c_idxs, counts = torch.unique(c_idxs, return_counts=True)
-                dur = torch.ones([text_lengths[idx]]).to(counts.dtype)
-                dur[c_idxs] = counts
-                # smooth the durations and set any 0 duration to 1
-                # by cutting off from the largest duration indeces.
-                extra_frames = dur.sum() - mel_lengths[idx]
-                largest_idxs = torch.argsort(-dur)[:extra_frames]
-                dur[largest_idxs] -= 1
-                assert (
-                    dur.sum() == mel_lengths[idx]
-                ), f" [!] total duration {dur.sum()} vs spectrogram length {mel_lengths[idx]}"
-                durations[idx, :text_lengths[idx]] = dur
-
-        # set stop targets wrt reduction factor
-        stop_targets = stop_targets.view(text_input.shape[0],
-                                         stop_targets.size(1) // self.config.r,
-                                         -1)
-        stop_targets = (stop_targets.sum(2)
-                        > 0.0).unsqueeze(2).float().squeeze(2)
-        stop_target_lengths = torch.divide(mel_lengths, self.config.r).ceil_()
-
-        return {
-            "text_input": text_input,
-            "text_lengths": text_lengths,
-            "speaker_names": speaker_names,
-            "mel_input": mel_input,
-            "mel_lengths": mel_lengths,
-            "linear_input": linear_input,
-            "stop_targets": stop_targets,
-            "stop_target_lengths": stop_target_lengths,
-            "attn_mask": attn_mask,
-            "durations": durations,
-            "speaker_ids": speaker_ids,
-            "d_vectors": d_vectors,
-            "max_text_length": float(max_text_length),
-            "max_spec_length": float(max_spec_length),
-            "item_idx": item_idx,
-            "waveform": waveform,
-            "pitch": pitch,
-            "energy": energy,
-            "language_ids": language_ids,
-            "audio_unique_names": batch["audio_unique_names"],
-        }
-
-    def get_sampler(self, config, dataset, num_gpus=1):
-        weights = None
-        data_items = dataset.samples
-
-        if getattr(config, "use_language_weighted_sampler", False):
-            alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
-            print(" > Using Language weighted sampler with alpha:", alpha)
-            weights = get_language_balancer_weights(data_items) * alpha
-
-        if getattr(config, "use_speaker_weighted_sampler", False):
-            alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
-            print(" > Using Speaker weighted sampler with alpha:", alpha)
-            if weights is not None:
-                weights += get_speaker_balancer_weights(data_items) * alpha
-            else:
-                weights = get_speaker_balancer_weights(data_items) * alpha
-
-        if getattr(config, "use_length_weighted_sampler", False):
-            alpha = getattr(config, "length_weighted_sampler_alpha", 1.0)
-            print(" > Using Length weighted sampler with alpha:", alpha)
-            if weights is not None:
-                weights += get_length_balancer_weights(data_items) * alpha
-            else:
-                weights = get_length_balancer_weights(data_items) * alpha
-
-        if weights is not None:
-            sampler = WeightedRandomSampler(weights, len(weights))
-        else:
-            sampler = None
-
-        # sampler for DDP
-        if sampler is None:
-            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        else:  # If a sampler is already defined use this sampler and DDP sampler together
-            sampler = DistributedSamplerWrapper(
-                sampler) if num_gpus > 1 else sampler
-
-        return sampler
-
-    def get_data_loader(
-        self,
-        config,
-        assets,
-        is_eval,
-        samples,
-        verbose,
-        num_gpus,
-        rank=None,
-    ):
-        if is_eval and not config.run_eval:
-            loader = None
-        else:
-            # setup multi-speaker attributes
-            if self.speaker_manager is not None:
-                if hasattr(config, "model_args"):
-                    speaker_id_mapping = (
-                        self.speaker_manager.name_to_id
-                        if config.model_args.use_speaker_embedding else None)
-                    d_vector_mapping = self.speaker_manager.embeddings if config.model_args.use_d_vector_file else None
-                    config.use_d_vector_file = config.model_args.use_d_vector_file
-                else:
-                    speaker_id_mapping = self.speaker_manager.name_to_id if config.use_speaker_embedding else None
-                    d_vector_mapping = self.speaker_manager.embeddings if config.use_d_vector_file else None
-            else:
-                speaker_id_mapping = None
-                d_vector_mapping = None
-
-            # setup multi-lingual attributes
-            if self.language_manager is not None:
-                language_id_mapping = self.language_manager.name_to_id if self.args.use_language_embedding else None
-            else:
-                language_id_mapping = None
-
-            # init dataloader
-            dataset = TTSDataset(
-                outputs_per_step=config.r if "r" in config else 1,
-                compute_linear_spec=config.model.lower() == "tacotron"
-                or config.compute_linear_spec,
-                compute_f0=config.get("compute_f0", False),
-                f0_cache_path=config.get("f0_cache_path", None),
-                compute_energy=config.get("compute_energy", False),
-                energy_cache_path=config.get("energy_cache_path", None),
-                samples=samples,
-                ap=self.ap,
-                return_wav=config.return_wav
-                if "return_wav" in config else False,
-                batch_group_size=0 if is_eval else config.batch_group_size *
-                config.batch_size,
-                min_text_len=config.min_text_len,
-                max_text_len=config.max_text_len,
-                min_audio_len=config.min_audio_len,
-                max_audio_len=config.max_audio_len,
-                phoneme_cache_path=config.phoneme_cache_path,
-                precompute_num_workers=config.precompute_num_workers,
-                use_noise_augment=False
-                if is_eval else config.use_noise_augment,
-                verbose=verbose,
-                speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping
-                if config.use_d_vector_file else None,
-                tokenizer=self.tokenizer,
-                start_by_longest=config.start_by_longest,
-                language_id_mapping=language_id_mapping,
-            )
-
-            # wait all the DDP process to be ready
-            if num_gpus > 1:
-                dist.barrier()
-
-            # sort input sequences from short to long
-            dataset.preprocess_samples()
-
-            # get samplers
-            sampler = self.get_sampler(config, dataset, num_gpus)
-
-            loader = DataLoader(
-                dataset,
-                batch_size=config.eval_batch_size
-                if is_eval else config.batch_size,
-                shuffle=config.shuffle
-                if sampler is None else False,  # if there is no other sampler
-                collate_fn=dataset.collate_fn,
-                drop_last=config.
-                drop_last,  # setting this False might cause issues in AMP training.
-                sampler=sampler,
-                num_workers=config.num_eval_loader_workers
-                if is_eval else config.num_loader_workers,
-                pin_memory=False,
-            )
-        return loader
-
-    def _get_test_aux_input(self):
-        d_vector = None
-        if self.config.use_d_vector_file:
-            d_vector = [
-                self.speaker_manager.embeddings[name]["embedding"]
-                for name in self.speaker_manager.embeddings
-            ]
-            d_vector = (random.sample(sorted(d_vector), 1), )
-
-        aux_inputs = {
-            "speaker_id":
-            None if not self.config.use_speaker_embedding else random.sample(
-                sorted(self.speaker_manager.name_to_id.values()), 1),
-            "d_vector":
-            d_vector,
-            "style_wav":
-            None,  # TODO: handle GST style input
-        }
-        return aux_inputs
-
-    def test_run(self, assets):
-        """Generic test run for `tts` models used by `Trainer`.
-
-        You can override this for a different behaviour.
-
-        Args:
-            assets (dict): A dict of training assets. For `tts` models, it must include `{'audio_processor': ap}`.
-
-        Returns:
-            Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
-        """
-        print(" | > Synthesizing test sentences.")
-        test_audios = {}
-        test_figures = {}
-        test_sentences = self.config.test_sentences
-        aux_inputs = self._get_test_aux_input()
-        for idx, sen in enumerate(test_sentences):
-            if isinstance(sen, list):
-                aux_inputs = self.get_aux_input_from_test_sentences(sen)
-                sen = aux_inputs["text"]
-            outputs_dict = synthesis(
-                self,
-                sen,
-                self.config,
-                "cuda" in str(next(self.parameters()).device),
-                speaker_id=aux_inputs["speaker_id"],
-                d_vector=aux_inputs["d_vector"],
-                style_wav=aux_inputs["style_wav"],
-                use_griffin_lim=True,
-                do_trim_silence=False,
-            )
-            test_audios["{}-audio".format(idx)] = outputs_dict["wav"]
-            test_figures["{}-prediction".format(idx)] = plot_spectrogram(
-                outputs_dict["outputs"]["model_outputs"],
-                self.ap,
-                output_fig=False)
-            test_figures["{}-alignment".format(idx)] = plot_alignment(
-                outputs_dict["outputs"]["alignments"], output_fig=False)
-        return test_figures, test_audios
-
-    def on_init_start(self, trainer):
-        """Save the speaker.pth and language_ids.json at the beginning of the training. Also update both paths."""
-        if self.speaker_manager is not None:
-            output_path = os.path.join(trainer.output_path, "speakers.pth")
-            self.speaker_manager.save_ids_to_file(output_path)
-            trainer.config.speakers_file = output_path
-            # some models don't have `model_args` set
-            if hasattr(trainer.config, "model_args"):
-                trainer.config.model_args.speakers_file = output_path
-            trainer.config.save_json(
-                os.path.join(trainer.output_path, "config.json"))
-            print(f" > `speakers.pth` is saved to {output_path}.")
-            print(" > `speakers_file` is updated in the config.json.")
-
-        if self.language_manager is not None:
-            output_path = os.path.join(trainer.output_path,
-                                       "language_ids.json")
-            self.language_manager.save_ids_to_file(output_path)
-            trainer.config.language_ids_file = output_path
-            if hasattr(trainer.config, "model_args"):
-                trainer.config.model_args.language_ids_file = output_path
-            trainer.config.save_json(
-                os.path.join(trainer.output_path, "config.json"))
-            print(f" > `language_ids.json` is saved to {output_path}.")
-            print(" > `language_ids_file` is updated in the config.json.")
-
 
 def _expand_currency(m, lang="en", currency="USD"):
     amount = float((re.sub(r"[^\d.]", "", m.group(0).replace(",", "."))))
@@ -2675,19 +2167,6 @@ def _expand_currency(m, lang="en", currency="USD"):
 
     and_equivalents = {
         "en": ", ",
-        "es": " con ",
-        "fr": " et ",
-        "de": " und ",
-        "pt": " e ",
-        "it": " e ",
-        "pl": ", ",
-        "cs": ", ",
-        "ru": ", ",
-        "nl": ", ",
-        "ar": ", ",
-        "tr": ", ",
-        "hu": ", ",
-        "ko": ", ",
     }
 
     if amount.is_integer():
@@ -2716,7 +2195,7 @@ def _remove_commas(m):
 
 
 def expand_numbers_multilingual(text, lang="en"):
-    if lang in ["en", "ru"]:
+    if lang == "en":
         text = re.sub(_comma_number_re, _remove_commas, text)
     try:
         text = re.sub(_currency_re["GBP"],
@@ -2725,7 +2204,7 @@ def expand_numbers_multilingual(text, lang="en"):
                       lambda m: _expand_currency(m, lang, "USD"), text)
         text = re.sub(_currency_re["EUR"],
                       lambda m: _expand_currency(m, lang, "EUR"), text)
-    except:
+    except Exception:
         pass
     text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
     text = re.sub(_number_re, lambda m: _expand_number(m, lang), text)
@@ -2775,28 +2254,8 @@ class VoiceBpeTokenizer:
             self.tokenizer = Tokenizer.from_file(vocab_file)
         self.char_limits = {
             "en": 250,
-            "de": 253,
-            "fr": 273,
-            "es": 239,
-            "it": 213,
-            "pt": 203,
-            "pl": 224,
             "zh": 82,
-            "ar": 166,
-            "cs": 186,
-            "ru": 182,
-            "nl": 251,
-            "tr": 226,
-            "ja": 71,
-            "hu": 224,
-            "ko": 95,
         }
-
-    @cached_property
-    def katsu(self):
-        import cutlet
-
-        return cutlet.Cutlet()
 
     def check_input_length(self, txt, lang):
         lang = lang.split("-")[0]  # remove the region
@@ -2807,20 +2266,10 @@ class VoiceBpeTokenizer:
             )
 
     def preprocess_text(self, txt, lang):
-        if lang in {
-                "ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl",
-                "pt", "ru", "tr", "zh", "ko"
-        }:
+        if lang in {"en", "zh"}:
             txt = multilingual_cleaners(txt, lang)
-            if lang == "zh":
-                txt = chinese_transliterate(txt)
-            if lang == "ko":
-                txt = korean_transliterate(txt)
-        elif lang == "ja":
-            txt = japanese_cleaners(txt, self.katsu)
-        elif lang == "hi":
-            # @manmay will implement this
-            txt = basic_cleaners(txt)
+            # if lang == "zh":
+            #     txt = chinese_transliterate(txt)
         else:
             raise NotImplementedError(f"Language '{lang}' is not supported.")
         return txt
@@ -2852,17 +2301,6 @@ class VoiceBpeTokenizer:
 
 
 class Xtts(BaseTTS):
-    """ⓍTTS model implementation.
-
-    ❗ Currently it only supports inference.
-
-    Examples:
-        >>> from TTS.tts.configs.xtts_config import XttsConfig
-        >>> from TTS.tts.models.xtts import Xtts
-        >>> config = XttsConfig()
-        >>> model = Xtts.inif_from_config(config)
-        >>> model.load_checkpoint(config, checkpoint_dir="paths/to/models_dir/", eval=True)
-    """
 
     def __init__(self, config):
         super().__init__(config, ap=None, tokenizer=None)
@@ -2870,13 +2308,9 @@ class Xtts(BaseTTS):
         self.config = config
         self.gpt_batch_size = self.args["gpt_batch_size"]  # 1
 
-        # self.tokenizer = VoiceBpeTokenizer()
-        # self.gpt = None
-        # self.init_models()
         self.register_buffer("mel_stats", torch.ones(80))
 
     def init_models(self):
-        """Initialize the models. We do it here since we need to load the tokenizer first."""
         if self.tokenizer.tokenizer is not None:
             self.args[
                 "gpt_number_text_tokens"] = self.tokenizer.get_number_tokens()
@@ -3028,8 +2462,9 @@ class Xtts(BaseTTS):
             audio = audio[:, :load_sr * max_ref_length].to(self.device)
             if sound_norm_refs:
                 audio = (audio / torch.abs(audio).max()) * 0.75
-            if librosa_trim_db is not None:
-                audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
+            # if librosa_trim_db is not None:
+            #     print("librosa_trim_db ..", librosa_trim_db)
+            #     audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
 
             # compute latents for the decoder
             speaker_embedding = self.get_speaker_embedding(audio, load_sr)
@@ -3513,9 +2948,9 @@ class XttsArgs(BaseConfig):
     gpt_batch_size: int = 1
     enable_redaction: bool = False
     kv_cache: bool = True
-    gpt_checkpoint: str = None
-    clvp_checkpoint: str = None
-    decoder_checkpoint: str = None
+    gpt_checkpoint: str | None = None
+    clvp_checkpoint: str | None = None
+    decoder_checkpoint: str | None = None
     num_chars: int = 255
 
     # XTTS GPT Encoder params
@@ -3526,9 +2961,9 @@ class XttsArgs(BaseConfig):
     gpt_layers: int = 30
     gpt_n_model_channels: int = 1024
     gpt_n_heads: int = 16
-    gpt_number_text_tokens: int = None
-    gpt_start_text_token: int = None
-    gpt_stop_text_token: int = None
+    gpt_number_text_tokens: int | None = None
+    gpt_start_text_token: int | None = None
+    gpt_stop_text_token: int | None = None
     gpt_num_audio_tokens: int = 8194
     gpt_start_audio_token: int = 8192
     gpt_stop_audio_token: int = 8193
@@ -3551,8 +2986,6 @@ class XttsArgs(BaseConfig):
 @dataclass
 class XttsAudioConfig(BaseConfig):
     """
-    Configuration class for audio-related parameters in the XTTS model.
-
     Args:
         sample_rate (int): The sample rate in which the GPT operates.
         output_sample_rate (int): The sample rate of the output audio waveform.
@@ -3568,35 +3001,34 @@ class XTTSConfig(BaseConfig):
     num_eval_loader_workers: int = 0
     use_noise_augment: bool = False
     use_phonemes: bool = False
-    phonemizer: str = None
-    phoneme_language: str = None
+    phonemizer: str = ""
+    phoneme_language: str = ""
     compute_input_seq_cache: bool = False
-    text_cleaner: str = None
+    text_cleaner: str = ""
     enable_eos_bos_chars: bool = False
     test_sentences_file: str = ""
-    phoneme_cache_path: str = None
+    phoneme_cache_path: str = ""
     # vocabulary parameters
     add_blank: bool = False
     # training params
     batch_group_size: int = 0
-    loss_masking: bool = None
+    loss_masking: bool = False
     # dataloading
     min_audio_len: int = 1
-    max_audio_len: int = float("inf")
+    max_audio_len: float = float("inf")
     min_text_len: int = 1
-    max_text_len: int = float("inf")
+    max_text_len: float = float("inf")
     compute_f0: bool = False
     compute_energy: bool = False
     compute_linear_spec: bool = False
     precompute_num_workers: int = 0
-    use_noise_augment: bool = False
     start_by_longest: bool = False
     shuffle: bool = False
     drop_last: bool = False
     # dataset
     # optimizer
     # evaluation
-    eval_split_max_size: int = None
+    eval_split_max_size: int | None = None
     eval_split_size: float = 0.01
     # weighted samplers
     use_speaker_weighted_sampler: bool = False
@@ -3608,25 +3040,10 @@ class XTTSConfig(BaseConfig):
     model: str = "xtts"
     model_args: XttsArgs = field(default_factory=XttsArgs)
     audio: XttsAudioConfig = field(default_factory=XttsAudioConfig)
-    model_dir: str = None
+    model_dir: str | None = None
     languages: list[str] = field(default_factory=lambda: [
         "en",
-        "es",
-        "fr",
-        "de",
-        "it",
-        "pt",
-        "pl",
-        "tr",
-        "ru",
-        "nl",
-        "cs",
-        "ar",
         "zh-cn",
-        "hu",
-        "ko",
-        "ja",
-        "hi",
     ])
 
     # inference params

@@ -10,6 +10,7 @@ import torch.nn as nn
 
 import pysbd
 
+from tqdm import tqdm
 from xtts import Xtts, XTTSConfig
 
 
@@ -120,7 +121,9 @@ class Synthesizer(nn.Module):
         if self.use_cuda:
             vocoder_device = "cuda"
 
-        for sen in sens:
+        print(sens)
+        sens_tqdm = tqdm(sens, desc="Synthesizing")
+        for sen in sens_tqdm:
             outputs = self.tts_model.synthesize(
                 text=sen,
                 config=self.tts_config,
@@ -256,9 +259,15 @@ class TTS(nn.Module):
 if __name__ == "__main__":
 
     tts = TTS(model_path="models", config_path="models/config.json", gpu=False)
+    # with open("./tmp/sample.txt", "r") as f:
+    #     lines = f.readlines()
+    #
+    # cleaned_lines = [line.strip() for line in lines if line.strip()]
+    #
+    # text = "".join(cleaned_lines)
 
     tts.tts_to_file(text="hello world",
-                    file_path="./tmp/sample.wav",
+                    file_path="./tmp/sample1.wav",
                     speaker_wav="./tmp/output.wav",
                     enable_text_splitting=True,
                     language="en")
