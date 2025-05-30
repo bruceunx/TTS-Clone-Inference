@@ -59,7 +59,7 @@ def load_config(config_path: str):
     return config
 
 
-class Synthesizer(nn.Module):
+class Synthesizer:
 
     def __init__(self, tts_checkpoint, tts_config_path, language, use_cuda=False):
         super().__init__()
@@ -77,9 +77,8 @@ class Synthesizer(nn.Module):
             assert torch.cuda.is_available(
             ), "CUDA is not availabe on this machine."
 
-        if tts_checkpoint:
-            self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
-            self.output_sample_rate = self.tts_config.audio["sample_rate"]
+        self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
+        self.output_sample_rate = self.tts_config.audio["sample_rate"]
 
     @staticmethod
     def _get_segmenter(lang: str):
@@ -99,8 +98,8 @@ class Synthesizer(nn.Module):
 
     def tts(
         self,
-        text: str = "",
-        language_name: str = "en",
+        text: str,
+        language: str,
         speaker_wav=None,
         split_sentences: bool = True,
         **kwargs,
@@ -128,7 +127,7 @@ class Synthesizer(nn.Module):
                 text=sen,
                 config=self.tts_config,
                 speaker_wav=speaker_wav,
-                language=language_name,
+                language=language,
                 **kwargs,
             )
             waveform = outputs["wav"]
@@ -220,7 +219,7 @@ class TTS:
 
         wav = self.synthesizer.tts(
             text=text,
-            language_name=language,
+            language=language,
             speaker_wav=speaker_wav,
             split_sentences=split_sentences,
             **kwargs,
@@ -239,14 +238,14 @@ if __name__ == "__main__":
 
     text = "".join(cleaned_lines)
 
-    tts.tts_to_file(text="hello, world",
-                    file_path="./tmp/sample2.wav",
-                    speaker_wav="./tmp/sourcezh.wav",
-                    enable_text_splitting=False,
-                    language="en")
-
-    # tts.tts_to_file(text="你好, 世界",
+    # tts.tts_to_file(text="hello, world",
     #                 file_path="./tmp/sample2.wav",
     #                 speaker_wav="./tmp/sourcezh.wav",
     #                 enable_text_splitting=False,
-    #                 language="zh")
+    #                 language="en")
+
+    tts.tts_to_file(text="你好, 世界",
+                    file_path="./tmp/sample2.wav",
+                    speaker_wav="./tmp/sourcezh.wav",
+                    enable_text_splitting=False,
+                    language="zh")

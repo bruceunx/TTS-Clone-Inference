@@ -2751,106 +2751,6 @@ class Xtts(BaseTTS):
         wav_gen_prev = wav_gen
         return wav_chunk, wav_gen_prev, wav_overlap
 
-    @torch.inference_mode()
-    def inference_stream(
-        self,
-        text,
-        language,
-        gpt_cond_latent,
-        speaker_embedding,
-        # Streaming
-        stream_chunk_size=20,
-        overlap_wav_len=1024,
-        # GPT inference
-        temperature=0.75,
-        length_penalty=1.0,
-        repetition_penalty=10.0,
-        top_k=50,
-        top_p=0.85,
-        do_sample=True,
-        speed=1.0,
-        enable_text_splitting=False,
-        **hf_generate_kwargs,
-    ):
-        language = language.split("-")[0]  # remove the country code
-        length_scale = 1.0 / max(speed, 0.05)
-        gpt_cond_latent = gpt_cond_latent.to(self.device)
-        speaker_embedding = speaker_embedding.to(self.device)
-        if enable_text_splitting:
-            text = split_sentence(text, language,
-                                  self.tokenizer.char_limits[language])
-        else:
-            text = [text]
-
-        for sent in text:
-            sent = sent.strip().lower()
-            text_tokens = torch.IntTensor(
-                self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(
-                    self.device)
-
-            assert (
-                text_tokens.shape[-1] < self.args.gpt_max_text_tokens
-            ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
-
-            fake_inputs = self.gpt.compute_embeddings(
-                gpt_cond_latent.to(self.device),
-                text_tokens,
-            )
-            gpt_generator = self.gpt.get_generator(
-                fake_inputs=fake_inputs,
-                top_k=top_k,
-                top_p=top_p,
-                temperature=temperature,
-                do_sample=do_sample,
-                num_beams=1,
-                num_return_sequences=1,
-                length_penalty=float(length_penalty),
-                repetition_penalty=float(repetition_penalty),
-                output_attentions=False,
-                output_hidden_states=True,
-                **hf_generate_kwargs,
-            )
-
-            last_tokens = []
-            all_latents = []
-            wav_gen_prev = None
-            wav_overlap = None
-            is_end = False
-
-            while not is_end:
-                try:
-                    x, latent = next(gpt_generator)
-                    last_tokens += [x]
-                    all_latents += [latent]
-                except StopIteration:
-                    is_end = True
-
-                if is_end or (stream_chunk_size > 0
-                              and len(last_tokens) >= stream_chunk_size):
-                    gpt_latents = torch.cat(all_latents, dim=0)[None, :]
-                    if length_scale != 1.0:
-                        gpt_latents = F.interpolate(
-                            gpt_latents.transpose(1, 2),
-                            scale_factor=length_scale,
-                            mode="linear").transpose(1, 2)
-                    wav_gen = self.hifigan_decoder(gpt_latents,
-                                                   g=speaker_embedding.to(
-                                                       self.device))
-                    wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(
-                        wav_gen.squeeze(), wav_gen_prev, wav_overlap,
-                        overlap_wav_len)
-                    last_tokens = []
-                    yield wav_chunk
-
-    def forward(self):
-        raise NotImplementedError(
-            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
-        )
-
-    def eval_step(self):
-        raise NotImplementedError(
-            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
-        )
 
     def eval(self):  # pylint: disable=redefined-builtin
         """Sets the model to evaluation mode. Overrides the default eval() method to also set the GPT model to eval mode."""
@@ -2860,7 +2760,7 @@ class Xtts(BaseTTS):
     def get_compatible_checkpoint_state_dict(self, model_path):
 
         with open(model_path, "rb") as f:
-            checkpoint = torch.load(f, map_location=torch.device("cpu"))
+            checkpoint = torch.load(f, map_location=torch.device("cpu"), weights_only=True)
 
         return checkpoint
 
@@ -2897,7 +2797,7 @@ class Xtts(BaseTTS):
 
         checkpoint = self.get_compatible_checkpoint_state_dict(model_path)
 
-        self.load_state_dict(checkpoint, strict=False)  # show unexpected keys
+        self.load_state_dict(checkpoint, strict=True)  # show unexpected keys
 
         self.hifigan_decoder.eval()
         self.gpt.init_gpt_for_inference(
