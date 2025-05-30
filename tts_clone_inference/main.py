@@ -61,7 +61,7 @@ def load_config(config_path: str):
 
 class Synthesizer(nn.Module):
 
-    def __init__(self, tts_checkpoint="", tts_config_path="", use_cuda=False):
+    def __init__(self, tts_checkpoint, tts_config_path, language, use_cuda=False):
         super().__init__()
         self.tts_checkpoint_dir = tts_checkpoint
         self.tts_config_path = tts_config_path
@@ -71,7 +71,7 @@ class Synthesizer(nn.Module):
         self.num_languages = 0
         self.tts_languages = {}
         self.d_vector_dim = 0
-        self.seg = self._get_segmenter("en")
+        self.seg = self._get_segmenter(language)
 
         if self.use_cuda:
             assert torch.cuda.is_available(
@@ -187,49 +187,25 @@ class Synthesizer(nn.Module):
                  pipe_out=pipe_out)
 
 
-class TTS(nn.Module):
+class TTS:
 
     def __init__(
         self,
-        model_path: str = None,
-        config_path: str = None,
+        model_path: str,
+        config_path: str,
+        language: str,
         gpu=False,
     ):
         super().__init__()
         self.config = load_config(config_path) if config_path else None
-        self.synthesizer: Synthesizer | None = None
-        if model_path:
-            self.load_tts_model_by_path(model_path, config_path, gpu=gpu)
-
-    def load_tts_model_by_path(self,
-                               model_path: str,
-                               config_path: str = None,
-                               gpu: bool = False):
 
         self.synthesizer = Synthesizer(
             tts_checkpoint=model_path,
             tts_config_path=config_path,
+            language=language,
             use_cuda=gpu,
         )
 
-    def tts(
-        self,
-        text: str,
-        language: str = None,
-        speaker_wav: str = None,
-        split_sentences: bool = True,
-        **kwargs,
-    ):
-        if self.synthesizer is None:
-            return
-        wav = self.synthesizer.tts(
-            text=text,
-            language_name=language or "en",
-            speaker_wav=speaker_wav,
-            split_sentences=split_sentences,
-            **kwargs,
-        )
-        return wav
 
     def tts_to_file(
         self,
@@ -242,32 +218,35 @@ class TTS(nn.Module):
         **kwargs,
     ):
 
-        wav = self.tts(
+        wav = self.synthesizer.tts(
             text=text,
-            speaker=speaker,
-            language=language,
+            language_name=language,
             speaker_wav=speaker_wav,
             split_sentences=split_sentences,
             **kwargs,
         )
-        if self.synthesizer is None:
-            return
         self.synthesizer.save_wav(wav=wav, path=file_path)
         return file_path
 
 
 if __name__ == "__main__":
 
-    tts = TTS(model_path="models", config_path="models/config.json", gpu=False)
-    # with open("./tmp/sample.txt", "r") as f:
-    #     lines = f.readlines()
-    #
-    # cleaned_lines = [line.strip() for line in lines if line.strip()]
-    #
-    # text = "".join(cleaned_lines)
+    tts = TTS(model_path="models", config_path="models/config.json", language="zh", gpu=False)
+    with open("./tmp/sample.txt", "r") as f:
+        lines = f.readlines()
 
-    tts.tts_to_file(text="hello world",
-                    file_path="./tmp/sample1.wav",
-                    speaker_wav="./tmp/output.wav",
-                    enable_text_splitting=True,
+    cleaned_lines = [line.strip() for line in lines if line.strip()][:5]
+
+    text = "".join(cleaned_lines)
+
+    tts.tts_to_file(text="hello, world",
+                    file_path="./tmp/sample2.wav",
+                    speaker_wav="./tmp/sourcezh.wav",
+                    enable_text_splitting=False,
                     language="en")
+
+    # tts.tts_to_file(text="你好, 世界",
+    #                 file_path="./tmp/sample2.wav",
+    #                 speaker_wav="./tmp/sourcezh.wav",
+    #                 enable_text_splitting=False,
+    #                 language="zh")

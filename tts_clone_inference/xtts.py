@@ -2072,6 +2072,19 @@ _symbols_multilingual = {
                ("£", " pound "),
                ("°", " degree "),
            ]],
+    "zh": [
+        # Chinese
+        (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
+        for x in [
+            ("&", " 和 "),
+            ("@", " 在 "),
+            ("%", " 百分之 "),
+            ("#", " 号 "),
+            ("$", " 美元 "),
+            ("£", " 英镑 "),
+            ("°", " 度 "),
+        ]
+    ],
 }
 
 _abbreviations = {
@@ -2095,6 +2108,12 @@ _abbreviations = {
         ("col", "colonel"),
         ("ft", "fort"),
     ]],
+    "zh": [
+        (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
+        for x in [
+            # Chinese doesn't typically use abbreviations in the same way as Latin-based scripts.
+        ]
+    ],
 }
 
 _whitespace_re = re.compile(r"\s+")
@@ -2206,7 +2225,7 @@ def expand_numbers_multilingual(text, lang="en"):
                       lambda m: _expand_currency(m, lang, "EUR"), text)
     except Exception:
         pass
-    text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
+    # text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
     text = re.sub(_number_re, lambda m: _expand_number(m, lang), text)
     return text
 
