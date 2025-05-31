@@ -188,6 +188,7 @@ class Synthesizer:
 
 
 if __name__ == "__main__":
+    import librosa
     syn = Synthesizer(
         tts_checkpoint="models",
         tts_config_path="models/config.json",
@@ -215,4 +216,13 @@ if __name__ == "__main__":
         split_sentences=True,
     )
 
-    syn.save_wav(wav=wav, path="./tmp/sample2.wav")
+    wav_array = np.array(wav, dtype=np.float32)
+    print(syn.output_sample_rate)
+
+    current_duration = len(wav_array) / syn.output_sample_rate
+    target_duration = 10.0  # seconds
+    stretch_ratio = target_duration / current_duration
+
+    stretched_wav = librosa.effects.time_stretch(wav_array, rate=1/stretch_ratio)
+
+    syn.save_wav(wav=stretched_wav, path="./tmp/sample2_s.wav")
