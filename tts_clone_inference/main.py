@@ -1,14 +1,17 @@
 from io import BytesIO
+import os
 import time
 import json
+import sys
+import argparse
 
 import scipy
 import numpy as np
-
 import torch
 import pysbd
-
 from tqdm import tqdm
+import librosa
+
 from xtts import Xtts, XTTSConfig
 
 
@@ -187,42 +190,166 @@ class Synthesizer:
         )
 
 
+def read_text_file(file_path, max_lines=None):
+    """Read and clean text from a file."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        cleaned_lines = [line.strip() for line in lines if line.strip()]
+
+        if max_lines:
+            cleaned_lines = cleaned_lines[:max_lines]
+
+        return "".join(cleaned_lines)
+    except FileNotFoundError:
+        print(f"Error: Text file '{file_path}' not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading text file: {e}")
+        sys.exit(1)
+
+
+def validate_file_exists(file_path, file_type):
+    """Validate that a file exists."""
+    if not os.path.exists(file_path):
+        print(f"Error: {file_type} file '{file_path}' not found.")
+        sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="TTS Console Application with time stretching",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+    Examples:
+      python tts_app.py --text "Hello world" --speaker speaker.wav --output output.wav
+      python tts_app.py --file input.txt --speaker speaker.wav --duration 15.0 --output output.wav
+      python tts_app.py --text "你好世界" --speaker speaker.wav --language zh-cn --output output.wav
+            """,
+    )
+
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
+        "--text", "-t", type=str, help="Text to synthesize directly"
+    )
+    input_group.add_argument(
+        "--file", "-f", type=str, help="Path to text file to read from"
+    )
+
+    parser.add_argument(
+        "--speaker",
+        "-s",
+        type=str,
+        required=True,
+        help="Path to speaker reference audio file (WAV format)",
+    )
+    parser.add_argument(
+        "--output", "-o", type=str, required=True, help="Output audio file path"
+    )
+
+    parser.add_argument(
+        "--duration",
+        "-d",
+        type=float,
+        help="Target duration in seconds (enables time stretching)",
+    )
+    parser.add_argument(
+        "--language",
+        "-l",
+        type=str,
+        default="zh",
+        help="Language code (default: zh-cn)",
+    )
+
+    parser.add_argument(
+        "--max-lines", type=int, help="Maximum number of lines to read from file"
+    )
+
+    parser.add_argument(
+        "--no-cuda", action="store_false", help="Disable CUDA acceleration"
+    )
+    parser.add_argument(
+        "--split-sentences",
+        action="store_true",
+        default=True,
+        help="Split text into sentences for processing (default: True)",
+    )
+
+    args = parser.parse_args()
+
+    if args.file:
+        validate_file_exists(args.file, "Text")
+    validate_file_exists(args.speaker, "Speaker audio")
+
+    if args.text:
+        text = args.text
+        print(f"Using direct text input: {text[:50]}{'...' if len(text) > 50 else ''}")
+    else:
+        text = read_text_file(args.file, args.max_lines)
+        print(f"Read text from file: {text[:50]}{'...' if len(text) > 50 else ''}")
+
+    if not text.strip():
+        print("Error: No text to synthesize.")
+        sys.exit(1)
+
+    try:
+        print("Initializing TTS synthesizer...")
+
+        syn = Synthesizer(
+            tts_checkpoint="models",
+            tts_config_path="models/config.json",
+            language=args.language,
+            use_cuda=not args.no_cuda,
+        )
+
+        print("Synthesizing speech...")
+        wav = syn.tts(
+            text=text,
+            language=args.language,
+            speaker_wav=args.speaker,
+            split_sentences=args.split_sentences,
+        )
+
+        wav_array = np.array(wav, dtype=np.float32)
+        sample_rate = syn.output_sample_rate
+
+        print(
+            f"Generated audio: {len(wav_array)/sample_rate:.2f} seconds at {sample_rate} Hz"
+        )
+
+        if args.duration:
+            current_duration = len(wav_array) / sample_rate
+            stretch_ratio = args.duration / current_duration
+
+            print(
+                f"Time stretching: {current_duration:.2f}s -> {args.duration:.2f}s (ratio: {stretch_ratio:.3f})"
+            )
+
+            stretched_wav = librosa.effects.time_stretch(
+                wav_array, rate=1 / stretch_ratio
+            )
+            final_wav = stretched_wav
+        else:
+            final_wav = wav_array
+
+        print(f"Saving audio to: {args.output}")
+        syn.save_wav(wav=final_wav, path=args.output)
+
+        final_duration = len(final_wav) / sample_rate
+        print(f"Successfully created audio file: {final_duration:.2f} seconds")
+
+    except ImportError as e:
+        print(f"Import Error: {e}")
+        print("Please ensure all required libraries are installed:")
+        print("- TTS library (Coqui TTS or your custom implementation)")
+        print("- librosa")
+        print("- numpy")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error during synthesis: {e}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    import librosa
-    syn = Synthesizer(
-        tts_checkpoint="models",
-        tts_config_path="models/config.json",
-        language="zh",
-        use_cuda=False,
-    )
-    with open("./tmp/sample.txt", "r") as f:
-        lines = f.readlines()
-
-    cleaned_lines = [line.strip() for line in lines if line.strip()][:5]
-
-    text = "".join(cleaned_lines)
-
-    # wav = syn.tts(
-    #     text="hello world",
-    #     language="en",
-    #     speaker_wav="./tmp/sourcezh.wav",
-    #     split_sentences=True,
-    # )
-
-    wav = syn.tts(
-        text="免费学前教育逐步推进！6月起，这些新规将施行",
-        language="zh-cn",
-        speaker_wav="./tmp/sourcezh.wav",
-        split_sentences=True,
-    )
-
-    wav_array = np.array(wav, dtype=np.float32)
-    print(syn.output_sample_rate)
-
-    current_duration = len(wav_array) / syn.output_sample_rate
-    target_duration = 10.0  # seconds
-    stretch_ratio = target_duration / current_duration
-
-    stretched_wav = librosa.effects.time_stretch(wav_array, rate=1/stretch_ratio)
-
-    syn.save_wav(wav=stretched_wav, path="./tmp/sample2_s.wav")
+    main()
