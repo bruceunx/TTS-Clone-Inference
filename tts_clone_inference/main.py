@@ -209,7 +209,7 @@ if __name__ == "__main__":
     # )
 
     wav = syn.tts(
-        text="你好 世界",
+        text="免费学前教育逐步推进！6月起，这些新规将施行",
         language="zh-cn",
         speaker_wav="./tmp/sourcezh.wav",
         split_sentences=True,

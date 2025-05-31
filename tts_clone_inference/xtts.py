@@ -30,6 +30,7 @@ from spacy.lang.en import English
 from num2words import num2words
 import textwrap
 import pypinyin
+from utils import TextNorm as zh_num2words
 
 LRELU_SLOPE = 0.1
 
@@ -2217,23 +2218,49 @@ def _remove_commas(m):
     return text
 
 
+_comma_number_re = re.compile(r"\b\d{1,3}(,\d{3})*(\.\d+)?\b")
+_dot_number_re = re.compile(r"\b\d{1,3}(.\d{3})*(\,\d+)?\b")
+_decimal_number_re = re.compile(r"([0-9]+[.,][0-9]+)")
+
+
+def _remove_dots(m):
+    text = m.group(0)
+    if "." in text:
+        text = text.replace(".", "")
+    return text
+
+
+def _expand_decimal_point(m, lang="en"):
+    amount = m.group(1).replace(",", ".")
+    return num2words(float(amount), lang=lang if lang != "cs" else "cz")
+
+
 def expand_numbers_multilingual(text, lang="en"):
-    if lang == "en":
-        text = re.sub(_comma_number_re, _remove_commas, text)
-    try:
-        text = re.sub(
-            _currency_re["GBP"], lambda m: _expand_currency(m, lang, "GBP"), text
-        )
-        text = re.sub(
-            _currency_re["USD"], lambda m: _expand_currency(m, lang, "USD"), text
-        )
-        text = re.sub(
-            _currency_re["EUR"], lambda m: _expand_currency(m, lang, "EUR"), text
-        )
-    except Exception:
-        pass
-    # text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
-    text = re.sub(_number_re, lambda m: _expand_number(m, lang), text)
+    if lang == "zh":
+        text = zh_num2words()(text)
+    else:
+        if lang in ["en", "ru"]:
+            text = re.sub(_comma_number_re, _remove_commas, text)
+        else:
+            text = re.sub(_dot_number_re, _remove_dots, text)
+        try:
+            text = re.sub(
+                _currency_re["GBP"], lambda m: _expand_currency(m, lang, "GBP"), text
+            )
+            text = re.sub(
+                _currency_re["USD"], lambda m: _expand_currency(m, lang, "USD"), text
+            )
+            text = re.sub(
+                _currency_re["EUR"], lambda m: _expand_currency(m, lang, "EUR"), text
+            )
+        except Exception:
+            pass
+        if lang != "tr":
+            text = re.sub(
+                _decimal_number_re, lambda m: _expand_decimal_point(m, lang), text
+            )
+        text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
+        text = re.sub(_number_re, lambda m: _expand_number(m, lang), text)
     return text
 
 
