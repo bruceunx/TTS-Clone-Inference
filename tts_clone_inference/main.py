@@ -6,8 +6,6 @@ import scipy
 import numpy as np
 
 import torch
-import torch.nn as nn
-
 import pysbd
 
 from tqdm import tqdm
@@ -115,7 +113,6 @@ class Synthesizer:
         if self.use_cuda:
             vocoder_device = "cuda"
 
-        print(sens)
         sens_tqdm = tqdm(sens, desc="Synthesizing")
         for sen in sens_tqdm:
             outputs = self.tts_model.synthesize(
@@ -188,8 +185,6 @@ class Synthesizer:
             sample_rate=self.output_sample_rate,
             pipe_out=pipe_out,
         )
-
-
 
 
 if __name__ == "__main__":

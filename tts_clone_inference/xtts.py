@@ -29,8 +29,23 @@ from spacy.lang.en import English
 
 from num2words import num2words
 import textwrap
+import pypinyin
 
 LRELU_SLOPE = 0.1
+
+
+def chinese_transliterate(text):
+    return "".join(
+        [
+            p[0]
+            for p in pypinyin.pinyin(
+                text,
+                style=pypinyin.Style.TONE3,
+                heteronym=False,
+                neutral_tone_with_five=True,
+            )
+        ]
+    )
 
 
 def load_wav_to_torch(full_path):
@@ -2278,8 +2293,8 @@ class VoiceBpeTokenizer:
     def preprocess_text(self, txt, lang):
         if lang in {"en", "zh"}:
             txt = multilingual_cleaners(txt, lang)
-            # if lang == "zh":
-            #     txt = chinese_transliterate(txt)
+            if lang == "zh":
+                txt = chinese_transliterate(txt)
         else:
             raise NotImplementedError(f"Language '{lang}' is not supported.")
         return txt
