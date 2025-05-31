@@ -15,7 +15,9 @@ import librosa
 from xtts import Xtts, XTTSConfig
 
 import transformers
+
 transformers.logging.set_verbosity_error()
+
 
 def save_wav(
     *, wav: np.ndarray, path: str, sample_rate: int = None, pipe_out=None, **kwargs
