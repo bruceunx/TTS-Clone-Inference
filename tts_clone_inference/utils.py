@@ -1164,7 +1164,7 @@ if __name__ == "__main__":
     with open(args.ifile, "r", encoding="utf8") as istream, open(args.ofile, "w+", encoding="utf8") as ostream:
         if args.format == "tsv":
             reader = csv.DictReader(istream, delimiter="\t")
-            assert "TEXT" in reader.fieldnames
+            assert reader.fieldnames is not None and  "TEXT" in reader.fieldnames
             print("\t".join(reader.fieldnames), file=ostream)
 
             for item in reader:
@@ -1181,13 +1181,13 @@ if __name__ == "__main__":
                 if ndone % args.log_interval == 0:
                     print(f"text norm: {ndone} lines done.", file=sys.stderr, flush=True)
         else:
-            for l in istream:
+            for line in istream:
                 key, text = "", ""
                 if args.format == "ark":  # KALDI archive, line format: "key text"
-                    cols = l.strip().split(maxsplit=1)
+                    cols = line.strip().split(maxsplit=1)
                     key, text = cols[0], cols[1] if len(cols) == 2 else ""
                 else:
-                    text = l.strip()
+                    text = line.strip()
 
                 if text:
                     text = normalizer(text)
