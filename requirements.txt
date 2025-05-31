@@ -38,7 +38,7 @@ mypy-extensions==1.0.0
 networkx==3.3
 num2words==0.5.13
 numba==0.60.0
-numpy==2.2.6
+numpy==2.0.2
 packaging==24.1
 pillow==10.4.0
 platformdirs==4.3.2
@@ -79,7 +79,7 @@ torchaudio==2.4.1
 torchvision==0.19.1
 tqdm==4.66.5
 transformers==4.44.2
--e git+ssh://git@github.com/bruceunx/TTS-Clone-Inference.git@1220a21cd159451967b3135a15f228b9b3f81ac7#egg=tts_clone_inference
+-e git+ssh://git@github.com/bruceunx/TTS-Clone-Inference.git@ebe2878ef681538932c42400892e0150d026967e#egg=tts_clone_inference
 typer==0.12.5
 typing_extensions==4.12.2
 urllib3==2.2.2
