@@ -14,13 +14,9 @@ from tqdm import tqdm
 from xtts import Xtts, XTTSConfig
 
 
-def save_wav(*,
-             wav: np.ndarray,
-             path: str,
-             sample_rate: int = None,
-             pipe_out=None,
-             **kwargs) -> None:
-
+def save_wav(
+    *, wav: np.ndarray, path: str, sample_rate: int = None, pipe_out=None, **kwargs
+) -> None:
     wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
 
     wav_norm = wav_norm.astype(np.int16)
@@ -33,23 +29,24 @@ def save_wav(*,
 
 
 def trim_silence(wav, ap):
-    return wav[:ap.find_endpoint(wav)]
+    return wav[: ap.find_endpoint(wav)]
 
 
 def interpolate_vocoder_input(scale_factor, spec):
     print(" > before interpolation :", spec.shape)
     spec = torch.tensor(spec).unsqueeze(0).unsqueeze(0)  # pylint: disable=not-callable
-    spec = torch.nn.functional.interpolate(spec,
-                                           scale_factor=scale_factor,
-                                           recompute_scale_factor=True,
-                                           mode="bilinear",
-                                           align_corners=False).squeeze(0)
+    spec = torch.nn.functional.interpolate(
+        spec,
+        scale_factor=scale_factor,
+        recompute_scale_factor=True,
+        mode="bilinear",
+        align_corners=False,
+    ).squeeze(0)
     print(" > after interpolation :", spec.shape)
     return spec
 
 
 def load_config(config_path: str):
-
     config_dict = {}
     with open(config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -60,7 +57,6 @@ def load_config(config_path: str):
 
 
 class Synthesizer:
-
     def __init__(self, tts_checkpoint, tts_config_path, language, use_cuda=False):
         super().__init__()
         self.tts_checkpoint_dir = tts_checkpoint
@@ -74,8 +70,7 @@ class Synthesizer:
         self.seg = self._get_segmenter(language)
 
         if self.use_cuda:
-            assert torch.cuda.is_available(
-            ), "CUDA is not availabe on this machine."
+            assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
 
         self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
         self.output_sample_rate = self.tts_config.audio["sample_rate"]
@@ -84,9 +79,9 @@ class Synthesizer:
     def _get_segmenter(lang: str):
         return pysbd.Segmenter(language=lang, clean=True)
 
-    def _load_tts(self, tts_checkpoint_dir: str, tts_config_path: str,
-                  use_cuda: bool) -> None:
-
+    def _load_tts(
+        self, tts_checkpoint_dir: str, tts_config_path: str, use_cuda: bool
+    ) -> None:
         self.tts_config = load_config(tts_config_path)
         self.tts_model = Xtts(self.tts_config)
         self.tts_model.load_checkpoint(tts_checkpoint_dir, eval=True)
@@ -132,39 +127,46 @@ class Synthesizer:
             )
             waveform = outputs["wav"]
             if not use_gl:
-                mel_postnet_spec = outputs["outputs"]["model_outputs"][
-                    0].detach().cpu().numpy()
+                mel_postnet_spec = (
+                    outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
+                )
                 # denormalize tts output based on tts audio config
-                mel_postnet_spec = self.tts_model.ap.denormalize(
-                    mel_postnet_spec.T).T
+                mel_postnet_spec = self.tts_model.ap.denormalize(mel_postnet_spec.T).T
                 # renormalize spectrogram based on vocoder config
                 vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                 # compute scale factor for possible sample rate mismatch
                 scale_factor = [
                     1,
-                    self.vocoder_config["audio"]["sample_rate"] /
-                    self.tts_model.ap.sample_rate,
+                    self.vocoder_config["audio"]["sample_rate"]
+                    / self.tts_model.ap.sample_rate,
                 ]
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
                     vocoder_input = interpolate_vocoder_input(
-                        scale_factor, vocoder_input)
+                        scale_factor, vocoder_input
+                    )
                 else:
                     vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)  # pylint: disable=not-callable
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(
-                    vocoder_input.to(vocoder_device))
-            if torch.is_tensor(waveform) and waveform.device != torch.device(
-                    "cpu") and not use_gl:
+                    vocoder_input.to(vocoder_device)
+                )
+            if (
+                torch.is_tensor(waveform)
+                and waveform.device != torch.device("cpu")
+                and not use_gl
+            ):
                 waveform = waveform.cpu()
             if not use_gl:
                 waveform = waveform.numpy()
             waveform = waveform.squeeze()
 
             # trim silence
-            if "do_trim_silence" in self.tts_config.audio and self.tts_config.audio[
-                    "do_trim_silence"]:
+            if (
+                "do_trim_silence" in self.tts_config.audio
+                and self.tts_config.audio["do_trim_silence"]
+            ):
                 waveform = trim_silence(waveform, self.tts_model.ap)
 
             wavs += list(waveform)
@@ -180,57 +182,23 @@ class Synthesizer:
     def save_wav(self, wav: list[int], path: str, pipe_out=None) -> None:
         # if tensor convert to numpy
         new_wav = np.array(wav)
-        save_wav(wav=new_wav,
-                 path=path,
-                 sample_rate=self.output_sample_rate,
-                 pipe_out=pipe_out)
-
-
-class TTS:
-
-    def __init__(
-        self,
-        model_path: str,
-        config_path: str,
-        language: str,
-        gpu=False,
-    ):
-        super().__init__()
-        self.config = load_config(config_path) if config_path else None
-
-        self.synthesizer = Synthesizer(
-            tts_checkpoint=model_path,
-            tts_config_path=config_path,
-            language=language,
-            use_cuda=gpu,
+        save_wav(
+            wav=new_wav,
+            path=path,
+            sample_rate=self.output_sample_rate,
+            pipe_out=pipe_out,
         )
 
 
-    def tts_to_file(
-        self,
-        text: str,
-        speaker: str = None,
-        language: str = None,
-        speaker_wav: str = None,
-        file_path: str = "output.wav",
-        split_sentences: bool = True,
-        **kwargs,
-    ):
-
-        wav = self.synthesizer.tts(
-            text=text,
-            language=language,
-            speaker_wav=speaker_wav,
-            split_sentences=split_sentences,
-            **kwargs,
-        )
-        self.synthesizer.save_wav(wav=wav, path=file_path)
-        return file_path
 
 
 if __name__ == "__main__":
-
-    tts = TTS(model_path="models", config_path="models/config.json", language="zh", gpu=False)
+    syn = Synthesizer(
+        tts_checkpoint="models",
+        tts_config_path="models/config.json",
+        language="zh",
+        use_cuda=False,
+    )
     with open("./tmp/sample.txt", "r") as f:
         lines = f.readlines()
 
@@ -238,14 +206,18 @@ if __name__ == "__main__":
 
     text = "".join(cleaned_lines)
 
-    # tts.tts_to_file(text="hello, world",
-    #                 file_path="./tmp/sample2.wav",
-    #                 speaker_wav="./tmp/sourcezh.wav",
-    #                 enable_text_splitting=False,
-    #                 language="en")
+    # wav = syn.tts(
+    #     text="hello world",
+    #     language="en",
+    #     speaker_wav="./tmp/sourcezh.wav",
+    #     split_sentences=True,
+    # )
 
-    tts.tts_to_file(text="你好, 世界",
-                    file_path="./tmp/sample2.wav",
-                    speaker_wav="./tmp/sourcezh.wav",
-                    enable_text_splitting=False,
-                    language="zh")
+    wav = syn.tts(
+        text="你好 世界",
+        language="zh-cn",
+        speaker_wav="./tmp/sourcezh.wav",
+        split_sentences=True,
+    )
+
+    syn.save_wav(wav=wav, path="./tmp/sample2.wav")

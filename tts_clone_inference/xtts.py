@@ -42,10 +42,8 @@ def load_wav_to_torch(full_path):
     elif data.dtype == np.float16 or data.dtype == np.float32:
         norm_fix = 1.0
     else:
-        raise NotImplementedError(
-            f"Provided data dtype not supported: {data.dtype}")
-    return (torch.FloatTensor(data.astype(np.float32)) / norm_fix,
-            sampling_rate)
+        raise NotImplementedError(f"Provided data dtype not supported: {data.dtype}")
+    return (torch.FloatTensor(data.astype(np.float32)) / norm_fix, sampling_rate)
 
 
 def check_audio(audio, audiopath: str):
@@ -101,11 +99,11 @@ def split_sentence(text, lang, text_split_length=250):
             elif len(str(sentence)) > text_split_length:
                 # if the current sentence is greater than the text_split_length
                 for line in textwrap.wrap(
-                        str(sentence),
-                        width=text_split_length,
-                        drop_whitespace=True,
-                        break_on_hyphens=False,
-                        tabsize=1,
+                    str(sentence),
+                    width=text_split_length,
+                    drop_whitespace=True,
+                    break_on_hyphens=False,
+                    tabsize=1,
                 ):
                     text_splits.append(str(line))
             else:
@@ -180,7 +178,7 @@ def get_user_data_dir(appname):
 
         key = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
         )
         dir_, _ = winreg.QueryValueEx(key, "Local AppData")
         ans = Path(dir_).resolve(strict=False)
@@ -212,65 +210,75 @@ class ResBlock1(torch.nn.Module):
 
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super().__init__()
-        self.convs1 = nn.ModuleList([
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[0],
-                    padding=get_padding(kernel_size, dilation[0]),
-                )),
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[1],
-                    padding=get_padding(kernel_size, dilation[1]),
-                )),
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[2],
-                    padding=get_padding(kernel_size, dilation[2]),
-                )),
-        ])
+        self.convs1 = nn.ModuleList(
+            [
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[2],
+                        padding=get_padding(kernel_size, dilation[2]),
+                    )
+                ),
+            ]
+        )
 
-        self.convs2 = nn.ModuleList([
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=1,
-                    padding=get_padding(kernel_size, 1),
-                )),
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=1,
-                    padding=get_padding(kernel_size, 1),
-                )),
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=1,
-                    padding=get_padding(kernel_size, 1),
-                )),
-        ])
+        self.convs2 = nn.ModuleList(
+            [
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+            ]
+        )
 
     def forward(self, x):
         """
@@ -313,26 +321,30 @@ class ResBlock2(torch.nn.Module):
 
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super().__init__()
-        self.convs = nn.ModuleList([
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[0],
-                    padding=get_padding(kernel_size, dilation[0]),
-                )),
-            weight_norm(
-                nn.Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[1],
-                    padding=get_padding(kernel_size, dilation[1]),
-                )),
-        ])
+        self.convs = nn.ModuleList(
+            [
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+            ]
+        )
 
     def forward(self, x):
         for c in self.convs:
@@ -347,7 +359,6 @@ class ResBlock2(torch.nn.Module):
 
 
 class HifiganGenerator(torch.nn.Module):
-
     def __init__(
         self,
         in_channels,
@@ -392,34 +403,37 @@ class HifiganGenerator(torch.nn.Module):
 
         # initial upsampling layers
         self.conv_pre = weight_norm(
-            nn.Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
+            nn.Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3)
+        )
         resblock = ResBlock1 if resblock_type == "1" else ResBlock2
         # upsampling layers
         self.ups = nn.ModuleList()
-        for i, (u, k) in enumerate(zip(upsample_factors,
-                                       upsample_kernel_sizes)):
+        for i, (u, k) in enumerate(zip(upsample_factors, upsample_kernel_sizes)):
             self.ups.append(
                 weight_norm(
                     nn.ConvTranspose1d(
                         upsample_initial_channel // (2**i),
-                        upsample_initial_channel // (2**(i + 1)),
+                        upsample_initial_channel // (2 ** (i + 1)),
                         k,
                         u,
                         padding=(k - u) // 2,
-                    )))
+                    )
+                )
+            )
         # MRF blocks
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel // (2**(i + 1))
+            ch = upsample_initial_channel // (2 ** (i + 1))
             for _, (k, d) in enumerate(
-                    zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+                zip(resblock_kernel_sizes, resblock_dilation_sizes)
+            ):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
         self.conv_post = weight_norm(
-            nn.Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
+            nn.Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias)
+        )
         if cond_channels > 0:
-            self.cond_layer = nn.Conv1d(cond_channels,
-                                        upsample_initial_channel, 1)
+            self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
 
         if not conv_pre_weight_norm:
             remove_parametrizations(self.conv_pre, "weight")
@@ -430,7 +444,7 @@ class HifiganGenerator(torch.nn.Module):
         if self.cond_in_each_up_layer:
             self.conds = nn.ModuleList()
             for i in range(len(self.ups)):
-                ch = upsample_initial_channel // (2**(i + 1))
+                ch = upsample_initial_channel // (2 ** (i + 1))
                 self.conds.append(nn.Conv1d(cond_channels, ch, 1))
 
     def forward(self, x, g=None):
@@ -483,7 +497,8 @@ class HifiganGenerator(torch.nn.Module):
         """
         c = c.to(self.conv_pre.weight.device)
         c = torch.nn.functional.pad(
-            c, (self.inference_padding, self.inference_padding), "replicate")
+            c, (self.inference_padding, self.inference_padding), "replicate"
+        )
         return self.forward(c)
 
     def remove_weight_norm(self):
@@ -495,11 +510,7 @@ class HifiganGenerator(torch.nn.Module):
         remove_parametrizations(self.conv_pre, "weight")
         remove_parametrizations(self.conv_post, "weight")
 
-    def load_checkpoint(self,
-                        config,
-                        checkpoint_path,
-                        eval=False,
-                        cache=False):  # pylint: disable=unused-argument, redefined-builtin
+    def load_checkpoint(self, config, checkpoint_path, eval=False, cache=False):  # pylint: disable=unused-argument, redefined-builtin
         state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
@@ -509,7 +520,6 @@ class HifiganGenerator(torch.nn.Module):
 
 
 class SELayer(nn.Module):
-
     def __init__(self, channel, reduction=8):
         super(SELayer, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
@@ -530,25 +540,13 @@ class SELayer(nn.Module):
 class SEBasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 reduction=8):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, reduction=8):
         super(SEBasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes,
-                               planes,
-                               kernel_size=3,
-                               stride=stride,
-                               padding=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False
+        )
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes,
-                               planes,
-                               kernel_size=3,
-                               padding=1,
-                               bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.se = SELayer(planes, reduction)
@@ -580,40 +578,35 @@ def set_init_dict(model_dict, checkpoint_state, c):
         if k not in model_dict:
             print(" | > Layer missing in the model definition: {}".format(k))
     # 1. filter out unnecessary keys
-    pretrained_dict = {
-        k: v
-        for k, v in checkpoint_state.items() if k in model_dict
-    }
+    pretrained_dict = {k: v for k, v in checkpoint_state.items() if k in model_dict}
     # 2. filter out different size layers
     pretrained_dict = {
-        k: v
-        for k, v in pretrained_dict.items()
-        if v.numel() == model_dict[k].numel()
+        k: v for k, v in pretrained_dict.items() if v.numel() == model_dict[k].numel()
     }
     # 3. skip reinit layers
     if c.has("reinit_layers") and c.reinit_layers is not None:
         for reinit_layer_name in c.reinit_layers:
             pretrained_dict = {
-                k: v
-                for k, v in pretrained_dict.items()
-                if reinit_layer_name not in k
+                k: v for k, v in pretrained_dict.items() if reinit_layer_name not in k
             }
     # 4. overwrite entries in the existing state dict
     model_dict.update(pretrained_dict)
-    print(" | > {} / {} layers are restored.".format(len(pretrained_dict),
-                                                     len(model_dict)))
+    print(
+        " | > {} / {} layers are restored.".format(
+            len(pretrained_dict), len(model_dict)
+        )
+    )
     return model_dict
 
 
 class PreEmphasis(nn.Module):
-
     def __init__(self, coefficient=0.97):
         super().__init__()
         self.coefficient = coefficient
         self.register_buffer(
             "filter",
-            torch.FloatTensor([-self.coefficient,
-                               1.0]).unsqueeze(0).unsqueeze(0))
+            torch.FloatTensor([-self.coefficient, 1.0]).unsqueeze(0).unsqueeze(0),
+        )
 
     def forward(self, x):
         assert len(x.size()) == 2
@@ -646,29 +639,21 @@ class ResNetSpeakerEncoder(nn.Module):
         self.audio_config = audio_config
         self.proj_dim = proj_dim
 
-        self.conv1 = nn.Conv2d(1,
-                               num_filters[0],
-                               kernel_size=3,
-                               stride=1,
-                               padding=1)
+        self.conv1 = nn.Conv2d(1, num_filters[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(num_filters[0])
 
         self.inplanes = num_filters[0]
-        self.layer1 = self.create_layer(SEBasicBlock, num_filters[0],
-                                        layers[0])
-        self.layer2 = self.create_layer(SEBasicBlock,
-                                        num_filters[1],
-                                        layers[1],
-                                        stride=(2, 2))
-        self.layer3 = self.create_layer(SEBasicBlock,
-                                        num_filters[2],
-                                        layers[2],
-                                        stride=(2, 2))
-        self.layer4 = self.create_layer(SEBasicBlock,
-                                        num_filters[3],
-                                        layers[3],
-                                        stride=(2, 2))
+        self.layer1 = self.create_layer(SEBasicBlock, num_filters[0], layers[0])
+        self.layer2 = self.create_layer(
+            SEBasicBlock, num_filters[1], layers[1], stride=(2, 2)
+        )
+        self.layer3 = self.create_layer(
+            SEBasicBlock, num_filters[2], layers[2], stride=(2, 2)
+        )
+        self.layer4 = self.create_layer(
+            SEBasicBlock, num_filters[3], layers[3], stride=(2, 2)
+        )
 
         self.instancenorm = nn.InstanceNorm1d(input_dim)
 
@@ -712,9 +697,7 @@ class ResNetSpeakerEncoder(nn.Module):
     def _init_layers(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight,
-                                        mode="fan_out",
-                                        nonlinearity="relu")
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -723,11 +706,13 @@ class ResNetSpeakerEncoder(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes,
-                          planes * block.expansion,
-                          kernel_size=1,
-                          stride=stride,
-                          bias=False),
+                nn.Conv2d(
+                    self.inplanes,
+                    planes * block.expansion,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
@@ -782,8 +767,7 @@ class ResNetSpeakerEncoder(nn.Module):
             x = torch.sum(x * w, dim=2)
         elif self.encoder_type == "ASP":
             mu = torch.sum(x * w, dim=2)
-            sg = torch.sqrt((torch.sum(
-                (x**2) * w, dim=2) - mu**2).clamp(min=1e-5))
+            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-5))
             x = torch.cat((mu, sg), 1)
 
         x = x.view(x.size()[0], -1)
@@ -795,7 +779,6 @@ class ResNetSpeakerEncoder(nn.Module):
 
 
 class HifiDecoder(torch.nn.Module):
-
     def __init__(
         self,
         input_sample_rate=22050,
@@ -857,18 +840,14 @@ class HifiDecoder(torch.nn.Module):
     def forward(self, latents, g=None):
         z = torch.nn.functional.interpolate(
             latents.transpose(1, 2),
-            scale_factor=[
-                self.ar_mel_length_compression / self.output_hop_length
-            ],
+            scale_factor=[self.ar_mel_length_compression / self.output_hop_length],
             mode="linear",
         ).squeeze(1)
         # upsample to the right sr
         if self.output_sample_rate != self.input_sample_rate:
             z = torch.nn.functional.interpolate(
                 z,
-                scale_factor=[
-                    self.output_sample_rate / self.input_sample_rate
-                ],
+                scale_factor=[self.output_sample_rate / self.input_sample_rate],
                 mode="linear",
             ).squeeze(0)
         o = self.waveform_decoder(z, g=g)
@@ -882,8 +861,7 @@ class HifiDecoder(torch.nn.Module):
 class GPT2InferenceModel(GPT2PreTrainedModel):
     """Override GPT2LMHeadModel to allow for prefix conditioning."""
 
-    def __init__(self, config, gpt, pos_emb, embeddings, norm, linear,
-                 kv_cache):
+    def __init__(self, config, gpt, pos_emb, embeddings, norm, linear, kv_cache):
         super().__init__(config)
         self.transformer = gpt
         self.pos_embedding = pos_emb
@@ -895,10 +873,7 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
     def store_prefix_emb(self, prefix_emb):
         self.cached_prefix_emb = prefix_emb
 
-    def prepare_inputs_for_generation(self,
-                                      input_ids,
-                                      past_key_values=None,
-                                      **kwargs):
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, **kwargs):
         token_type_ids = kwargs.get("token_type_ids", None)  # usually None
         if not self.kv_cache:
             past_key_values = None
@@ -949,7 +924,9 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         assert self.cached_prefix_emb is not None
         assert inputs_embeds is None  # Not supported by this inference model.
         assert labels is None  # Training not supported by this inference model.
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
 
         # assert len(past_key_values) + len(input_ids) == attention_mask.shape[1]
 
@@ -961,15 +938,16 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             gen_emb = gen_emb + self.pos_embedding(gen_emb)
             if self.cached_prefix_emb.shape[0] != gen_emb.shape[0]:
                 prefix_emb = self.cached_prefix_emb.repeat_interleave(
-                    gen_emb.shape[0] // self.cached_prefix_emb.shape[0], 0)
+                    gen_emb.shape[0] // self.cached_prefix_emb.shape[0], 0
+                )
             else:
                 prefix_emb = self.cached_prefix_emb.to(gen_emb.dtype)
             emb = torch.cat([prefix_emb, gen_emb], dim=1)
         else:
             emb = self.embeddings(input_ids)
             emb = emb + self.pos_embedding.get_fixed_embedding(
-                attention_mask.shape[1] -
-                (prefix_len + 1), attention_mask.device)
+                attention_mask.shape[1] - (prefix_len + 1), attention_mask.device
+            )
         transformer_outputs = self.transformer(
             inputs_embeds=emb,
             past_key_values=past_key_values,
@@ -988,7 +966,7 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         lm_logits = self.lm_head(hidden_states)
 
         if not return_dict:
-            return (lm_logits, ) + transformer_outputs[1:]
+            return (lm_logits,) + transformer_outputs[1:]
 
         return CausalLMOutputWithCrossAttentions(
             loss=None,
@@ -1005,7 +983,6 @@ def Sequential(*mods):
 
 
 class GroupNorm32(nn.GroupNorm):
-
     def forward(self, x):
         return super().forward(x.float()).type(x.dtype)
 
@@ -1039,7 +1016,6 @@ def zero_module(module):
 
 
 class QKVAttention(nn.Module):
-
     def __init__(self, n_heads):
         super().__init__()
         self.n_heads = n_heads
@@ -1054,12 +1030,11 @@ class QKVAttention(nn.Module):
         bs, width, length = qkv.shape
         assert width % (3 * self.n_heads) == 0
         ch = width // (3 * self.n_heads)
-        q, k, v = qkv.reshape(bs * self.n_heads, ch * 3, length).split(ch,
-                                                                       dim=1)
+        q, k, v = qkv.reshape(bs * self.n_heads, ch * 3, length).split(ch, dim=1)
         scale = 1 / math.sqrt(math.sqrt(ch))
         weight = torch.einsum(
-            "bct,bcs->bts", q * scale,
-            k * scale)  # More stable with f16 than dividing afterwards
+            "bct,bcs->bts", q * scale, k * scale
+        )  # More stable with f16 than dividing afterwards
         weight = weight + qk_bias
         if mask is not None:
             mask = mask.repeat(self.n_heads, 1, 1)
@@ -1096,8 +1071,11 @@ class AttentionBlock(nn.Module):
         self.qkv = conv_nd(1, channels, out_channels * 3, 1)
         self.attention = QKVAttention(self.num_heads)
 
-        self.x_proj = nn.Identity() if out_channels == channels else conv_nd(
-            1, channels, out_channels, 1)
+        self.x_proj = (
+            nn.Identity()
+            if out_channels == channels
+            else conv_nd(1, channels, out_channels, 1)
+        )
         self.proj_out = zero_module(conv_nd(1, out_channels, out_channels, 1))
 
     def forward(self, x, mask=None, qk_bias=0):
@@ -1106,7 +1084,7 @@ class AttentionBlock(nn.Module):
             if len(mask.shape) == 2:
                 mask = mask.unsqueeze(0).repeat(x.shape[0], 1, 1)
             if mask.shape[1] != x.shape[-1]:
-                mask = mask[:, :x.shape[-1], :x.shape[-1]]
+                mask = mask[:, : x.shape[-1], : x.shape[-1]]
 
         x = x.reshape(b, c, -1)
         x = self.norm(x)
@@ -1120,7 +1098,6 @@ class AttentionBlock(nn.Module):
 
 
 class ConditioningEncoder(nn.Module):
-
     def __init__(
         self,
         spec_dim,
@@ -1146,12 +1123,10 @@ class ConditioningEncoder(nn.Module):
 
 
 def null_position_embeddings(range, dim):
-    return torch.zeros((range.shape[0], range.shape[1], dim),
-                       device=range.device)
+    return torch.zeros((range.shape[0], range.shape[1], dim), device=range.device)
 
 
 class LearnedPositionEmbeddings(nn.Module):
-
     def __init__(self, seq_len, model_dim, init=0.02, relative=False):
         super().__init__()
         # nn.Embedding
@@ -1203,12 +1178,16 @@ def build_hf_gpt_transformer(
     # Built-in token embeddings are unused.
     del gpt.wte
 
-    mel_pos_emb = (LearnedPositionEmbeddings(max_mel_seq_len, model_dim)
-                   if max_mel_seq_len != -1 else functools.partial(
-                       null_position_embeddings, dim=model_dim))
-    text_pos_emb = (LearnedPositionEmbeddings(max_text_seq_len, model_dim)
-                    if max_mel_seq_len != -1 else functools.partial(
-                        null_position_embeddings, dim=model_dim))
+    mel_pos_emb = (
+        LearnedPositionEmbeddings(max_mel_seq_len, model_dim)
+        if max_mel_seq_len != -1
+        else functools.partial(null_position_embeddings, dim=model_dim)
+    )
+    text_pos_emb = (
+        LearnedPositionEmbeddings(max_text_seq_len, model_dim)
+        if max_mel_seq_len != -1
+        else functools.partial(null_position_embeddings, dim=model_dim)
+    )
     # gpt = torch.compile(gpt, mode="reduce-overhead", fullgraph=True)
     return gpt, mel_pos_emb, text_pos_emb, None, None
 
@@ -1224,12 +1203,10 @@ def default(val, d):
 
 
 class RMSNorm(nn.Module):
-
     def __init__(self, dim, scale=True, dim_cond=None):
         super().__init__()
         self.cond = exists(dim_cond)
-        self.to_gamma_beta = nn.Linear(dim_cond, dim *
-                                       2) if self.cond else None
+        self.to_gamma_beta = nn.Linear(dim_cond, dim * 2) if self.cond else None
 
         self.scale = dim**0.5
         self.gamma = nn.Parameter(torch.ones(dim)) if scale else None
@@ -1243,13 +1220,11 @@ class RMSNorm(nn.Module):
 
         assert exists(cond)
         gamma, beta = self.to_gamma_beta(cond).chunk(2, dim=-1)
-        gamma, beta = map(lambda t: rearrange(t, "b d -> b 1 d"),
-                          (gamma, beta))
+        gamma, beta = map(lambda t: rearrange(t, "b d -> b 1 d"), (gamma, beta))
         return out * gamma + beta
 
 
 class Attend(nn.Module):
-
     def __init__(self, dropout=0.0, causal=False, use_flash=False):
         super().__init__()
         self.dropout = dropout
@@ -1267,20 +1242,18 @@ class Attend(nn.Module):
         # determine efficient attention configs for cuda and cpu
         self.config = namedtuple(
             "EfficientAttentionConfig",
-            ["enable_flash", "enable_math", "enable_mem_efficient"])
+            ["enable_flash", "enable_math", "enable_mem_efficient"],
+        )
         self.cpu_config = self.config(True, True, True)
         self.cuda_config = None
 
         if not torch.cuda.is_available() or not use_flash:
             return
 
-        device_properties = torch.cuda.get_device_properties(
-            torch.device("cuda"))
+        device_properties = torch.cuda.get_device_properties(torch.device("cuda"))
 
         if device_properties.major == 8 and device_properties.minor == 0:
-            print(
-                "A100 GPU detected, using flash attention if input tensor is on cuda"
-            )
+            print("A100 GPU detected, using flash attention if input tensor is on cuda")
             self.cuda_config = self.config(True, False, False)
         else:
             print(
@@ -1297,8 +1270,7 @@ class Attend(nn.Module):
         return mask
 
     def flash_attn(self, q, k, v, mask=None):
-        _, heads, q_len, _, _, is_cuda = *q.shape, k.shape[
-            -2], q.is_cuda  # type: ignore
+        _, heads, q_len, _, _, is_cuda = *q.shape, k.shape[-2], q.is_cuda  # type: ignore
 
         # Recommended for multi-query single-key-value attention by Tri Dao
         # kv shape torch.Size([1, 512, 64]) -> torch.Size([1, 8, 512, 64])
@@ -1329,7 +1301,8 @@ class Attend(nn.Module):
                 v,
                 attn_mask=mask,
                 dropout_p=self.dropout if self.training else 0.0,
-                is_causal=self.causal)
+                is_causal=self.causal,
+            )
 
         return out
 
@@ -1344,7 +1317,7 @@ class Attend(nn.Module):
 
         n, device = q.shape[-2], q.device
 
-        scale = q.shape[-1]**-0.5
+        scale = q.shape[-1] ** -0.5
 
         if self.use_flash:
             return self.flash_attn(q, k, v, mask=mask)
@@ -1380,7 +1353,6 @@ class Attend(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(
         self,
         dim,
@@ -1401,9 +1373,7 @@ class Attention(nn.Module):
         dim_inner = dim_head * heads
         dim_context = default(dim_context, dim)
 
-        self.attend = Attend(causal=causal,
-                             dropout=dropout,
-                             use_flash=use_flash)
+        self.attend = Attend(causal=causal, dropout=dropout, use_flash=use_flash)
         self.to_q = nn.Linear(dim, dim_inner, bias=False)
         self.to_kv = nn.Linear(dim_context, dim_inner * 2, bias=False)
         self.to_out = nn.Linear(dim_inner, dim, bias=False)
@@ -1416,10 +1386,8 @@ class Attention(nn.Module):
         if has_context and self.cross_attn_include_queries:
             context = torch.cat((x, context), dim=-2)
 
-        q, k, v = (self.to_q(x), *self.to_kv(context).chunk(2, dim=-1)
-                   )  # type: ignore
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h),
-                      (q, k, v))
+        q, k, v = (self.to_q(x), *self.to_kv(context).chunk(2, dim=-1))  # type: ignore
+        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h), (q, k, v))
 
         out = self.attend(q, k, v, mask=mask)
 
@@ -1428,12 +1396,11 @@ class Attention(nn.Module):
 
 
 class CausalConv1d(nn.Conv1d):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        (kernel_size, ) = self.kernel_size
-        (dilation, ) = self.dilation
-        (stride, ) = self.stride
+        (kernel_size,) = self.kernel_size
+        (dilation,) = self.dilation
+        (stride,) = self.stride
 
         assert stride == 1
         self.causal_padding = dilation * (kernel_size - 1)
@@ -1444,7 +1411,6 @@ class CausalConv1d(nn.Conv1d):
 
 
 class GEGLU(nn.Module):
-
     def forward(self, x):
         x, gate = x.chunk(2, dim=-1)
         return F.gelu(gate) * x
@@ -1461,12 +1427,12 @@ def FeedForward(dim, mult=4, causal_conv=False):
             Rearrange("b d n -> b n d"),
         )
 
-    return Sequential(nn.Linear(dim, dim_inner * 2), GEGLU(), conv,
-                      nn.Linear(dim_inner, dim))
+    return Sequential(
+        nn.Linear(dim, dim_inner * 2), GEGLU(), conv, nn.Linear(dim_inner, dim)
+    )
 
 
 class PerceiverResampler(nn.Module):
-
     def __init__(
         self,
         *,
@@ -1482,8 +1448,9 @@ class PerceiverResampler(nn.Module):
         super().__init__()
         dim_context = default(dim_context, dim)
 
-        self.proj_context = nn.Linear(
-            dim_context, dim) if dim_context != dim else nn.Identity()
+        self.proj_context = (
+            nn.Linear(dim_context, dim) if dim_context != dim else nn.Identity()
+        )
 
         self.latents = nn.Parameter(torch.randn(num_latents, dim))
         nn.init.normal_(self.latents, std=0.02)
@@ -1491,16 +1458,19 @@ class PerceiverResampler(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(
-                nn.ModuleList([
-                    Attention(
-                        dim=dim,
-                        dim_head=dim_head,
-                        heads=heads,
-                        use_flash=use_flash_attn,
-                        cross_attn_include_queries=True,
-                    ),
-                    FeedForward(dim=dim, mult=ff_mult),
-                ]))
+                nn.ModuleList(
+                    [
+                        Attention(
+                            dim=dim,
+                            dim_head=dim_head,
+                            heads=heads,
+                            use_flash=use_flash_attn,
+                            cross_attn_include_queries=True,
+                        ),
+                        FeedForward(dim=dim, mult=ff_mult),
+                    ]
+                )
+            )
 
         self.norm = RMSNorm(dim)
 
@@ -1519,7 +1489,6 @@ class PerceiverResampler(nn.Module):
 
 
 class GPT(nn.Module):
-
     def __init__(
         self,
         start_text_token=261,
@@ -1563,13 +1532,17 @@ class GPT(nn.Module):
         self.model_dim = model_dim
         self.max_conditioning_inputs = max_conditioning_inputs
         self.max_gen_mel_tokens = max_mel_tokens - self.max_conditioning_inputs - 2
-        self.max_mel_tokens = -1 if max_mel_tokens == -1 else max_mel_tokens + 2 + self.max_conditioning_inputs
+        self.max_mel_tokens = (
+            -1
+            if max_mel_tokens == -1
+            else max_mel_tokens + 2 + self.max_conditioning_inputs
+        )
         self.max_text_tokens = -1 if max_text_tokens == -1 else max_text_tokens + 2
         self.max_prompt_tokens = max_prompt_tokens
         self.code_stride_len = code_stride_len
-        self.conditioning_encoder = ConditioningEncoder(80,
-                                                        model_dim,
-                                                        num_attn_heads=heads)
+        self.conditioning_encoder = ConditioningEncoder(
+            80, model_dim, num_attn_heads=heads
+        )
         self.conditioning_dropout = nn.Dropout1d(0.1)
         self.average_conditioning_embeddings = average_conditioning_embeddings
         self.use_perceiver_resampler = use_perceiver_resampler
@@ -1595,9 +1568,11 @@ class GPT(nn.Module):
         )
         if train_solo_embeddings:
             self.mel_solo_embedding = nn.Parameter(
-                torch.randn(1, 1, model_dim) * 0.02, requires_grad=True)
+                torch.randn(1, 1, model_dim) * 0.02, requires_grad=True
+            )
             self.text_solo_embedding = nn.Parameter(
-                torch.randn(1, 1, model_dim) * 0.02, requires_grad=True)
+                torch.randn(1, 1, model_dim) * 0.02, requires_grad=True
+            )
         else:
             self.mel_solo_embedding = 0
             self.text_solo_embedding = 0
@@ -1619,20 +1594,19 @@ class GPT(nn.Module):
 
     def get_grad_norm_parameter_groups(self):
         return {
-            "conditioning_encoder":
-            list(self.conditioning_encoder.parameters()),
-            "conditioning_perceiver":
-            list(self.conditioning_perceiver.parameters())
-            if self.use_perceiver_resampler else None,
-            "gpt":
-            list(self.gpt.parameters()),
-            "heads":
-            list(self.text_head.parameters()) +
-            list(self.mel_head.parameters()),
+            "conditioning_encoder": list(self.conditioning_encoder.parameters()),
+            "conditioning_perceiver": list(self.conditioning_perceiver.parameters())
+            if self.use_perceiver_resampler
+            else None,
+            "gpt": list(self.gpt.parameters()),
+            "heads": list(self.text_head.parameters())
+            + list(self.mel_head.parameters()),
         }
 
     def init_gpt_for_inference(self, kv_cache=True, use_deepspeed=False):
-        seq_length = self.max_prompt_tokens + self.max_mel_tokens + self.max_text_tokens + 1
+        seq_length = (
+            self.max_prompt_tokens + self.max_mel_tokens + self.max_text_tokens + 1
+        )
         gpt_config = GPT2Config(
             vocab_size=self.max_mel_tokens,
             n_positions=seq_length,
@@ -1661,10 +1635,8 @@ class GPT(nn.Module):
                 model=self.gpt_inference.half(),  # Transformers models
                 mp_size=1,  # Number of GPU
                 dtype=torch.float32,  # desired data type of output
-                replace_method=
-                "auto",  # Lets DS autmatically identify the layer to replace
-                replace_with_kernel_inject=
-                True,  # replace the model with the kernel injector
+                replace_method="auto",  # Lets DS autmatically identify the layer to replace
+                replace_with_kernel_inject=True,  # replace the model with the kernel injector
             )
             self.gpt_inference = self.ds_engine.module.eval()
 
@@ -1711,10 +1683,9 @@ class GPT(nn.Module):
         if attn_mask_text is not None:
             attn_mask = torch.cat([attn_mask_text, attn_mask_mel], dim=1)
             if prompt is not None:
-                attn_mask_cond = torch.ones(prompt.shape[0],
-                                            offset,
-                                            dtype=torch.bool,
-                                            device=emb.device)
+                attn_mask_cond = torch.ones(
+                    prompt.shape[0], offset, dtype=torch.bool, device=emb.device
+                )
                 attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
 
         gpt_out = self.gpt(
@@ -1731,14 +1702,13 @@ class GPT(nn.Module):
         enc = self.final_norm(enc)
 
         if return_latent:
-            return enc[:, :first_inputs.
-                       shape[1]], enc[:, -second_inputs.shape[1]:]
+            return enc[:, : first_inputs.shape[1]], enc[:, -second_inputs.shape[1] :]
 
-        first_logits = enc[:, :first_inputs.shape[1]]
+        first_logits = enc[:, : first_inputs.shape[1]]
         first_logits = first_head(first_logits)
         first_logits = first_logits.permute(0, 2, 1)
         if second_inputs is not None:
-            second_logits = enc[:, -second_inputs.shape[1]:]
+            second_logits = enc[:, -second_inputs.shape[1] :]
             second_logits = second_head(second_logits)
             second_logits = second_logits.permute(0, 2, 1)
             return first_logits, second_logits
@@ -1746,13 +1716,14 @@ class GPT(nn.Module):
             return first_logits
 
     def get_conditioning(self, speech_conditioning_input):
-        speech_conditioning_input = (speech_conditioning_input.unsqueeze(1)
-                                     if len(speech_conditioning_input.shape)
-                                     == 3 else speech_conditioning_input)
+        speech_conditioning_input = (
+            speech_conditioning_input.unsqueeze(1)
+            if len(speech_conditioning_input.shape) == 3
+            else speech_conditioning_input
+        )
         conds = []
         for j in range(speech_conditioning_input.shape[1]):
-            conds.append(
-                self.conditioning_encoder(speech_conditioning_input[:, j]))
+            conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
         conds = conds.mean(dim=1)
         return conds
@@ -1784,7 +1755,7 @@ class GPT(nn.Module):
                         start = 0
                     else:
                         start = random.randint(0, lengths[i] - prompt_len)
-                prompt = prompt_codes[:, start:start + prompt_len]
+                prompt = prompt_codes[:, start : start + prompt_len]
 
         # add start and stop tokens
         prompt = F.pad(prompt, (1, 0), value=self.start_prompt_token)
@@ -1802,8 +1773,9 @@ class GPT(nn.Module):
                 cond_input = cond_input.squeeze(1)
             conds = self.conditioning_encoder(cond_input)  # (b, d, s)
             if self.use_perceiver_resampler:
-                conds = self.conditioning_perceiver(conds.permute(
-                    0, 2, 1)).transpose(1, 2)  # (b, d, 32)
+                conds = self.conditioning_perceiver(conds.permute(0, 2, 1)).transpose(
+                    1, 2
+                )  # (b, d, 32)
         else:
             # already computed
             conds = cond_input.unsqueeze(1)
@@ -1838,11 +1810,12 @@ class GPT(nn.Module):
         """
         # ❗ FIXIT
         if self.max_conditioning_inputs == 0:
-            assert cond_mels is None, " ❗ cond_mels is not None, but max_conditioning_inputs == 0"
+            assert (
+                cond_mels is None
+            ), " ❗ cond_mels is not None, but max_conditioning_inputs == 0"
 
         max_text_len = text_lengths.max()
-        code_lengths = torch.ceil(
-            wav_lengths / self.code_stride_len).long() + 3
+        code_lengths = torch.ceil(wav_lengths / self.code_stride_len).long() + 3
 
         if cond_lens is not None:
             if self.use_perceiver_resampler:
@@ -1854,8 +1827,9 @@ class GPT(nn.Module):
             # recompute cond idxs for mel lengths
             for idx in range(cond_idxs.size(0)):
                 if self.use_perceiver_resampler:
-                    cond_idxs[idx] = cond_idxs[
-                        idx] // self.perceiver_cond_length_compression
+                    cond_idxs[idx] = (
+                        cond_idxs[idx] // self.perceiver_cond_length_compression
+                    )
                 else:
                     cond_idxs[idx] = cond_idxs[idx] // self.code_stride_len
 
@@ -1868,8 +1842,7 @@ class GPT(nn.Module):
         max_mel_len = code_lengths.max()
 
         if max_mel_len > audio_codes.shape[-1]:
-            audio_codes = F.pad(audio_codes,
-                                (0, max_mel_len - audio_codes.shape[-1]))
+            audio_codes = F.pad(audio_codes, (0, max_mel_len - audio_codes.shape[-1]))
 
         # 💖 Lovely assertions
         assert (
@@ -1880,12 +1853,14 @@ class GPT(nn.Module):
         ), f" ❗ max_text_len ({max_text_len}) > text_inputs.shape[-1] ({text_inputs.shape[-1]})"
 
         # Append stop token to text inputs
-        text_inputs = F.pad(text_inputs[:, :max_text_len], (0, 1),
-                            value=self.stop_text_token)
+        text_inputs = F.pad(
+            text_inputs[:, :max_text_len], (0, 1), value=self.stop_text_token
+        )
 
         # Append silence token to mel codes
-        audio_codes = F.pad(audio_codes[:, :max_mel_len], (0, 1),
-                            value=self.stop_audio_token)
+        audio_codes = F.pad(
+            audio_codes[:, :max_mel_len], (0, 1), value=self.stop_audio_token
+        )
 
         # Pad mel codes with stop_audio_token
         audio_codes = self.set_mel_padding(
@@ -1895,9 +1870,11 @@ class GPT(nn.Module):
         # Build input and target tensors
         # Prepend start token to inputs and append stop token to targets
         text_inputs, text_targets = self.set_inputs_and_targets(
-            text_inputs, self.start_text_token, self.stop_text_token)
+            text_inputs, self.start_text_token, self.stop_text_token
+        )
         audio_codes, mel_targets = self.set_inputs_and_targets(
-            audio_codes, self.start_audio_token, self.stop_audio_token)
+            audio_codes, self.start_audio_token, self.stop_audio_token
+        )
 
         # Set attn_mask
         attn_mask_cond = None
@@ -1933,18 +1910,18 @@ class GPT(nn.Module):
                     attn_mask_cond[idx, l:] = 0.0
 
             for idx, l in enumerate(text_lengths):
-                attn_mask_text[idx, l + 1:] = 0.0
+                attn_mask_text[idx, l + 1 :] = 0.0
 
             for idx, l in enumerate(code_lengths):
-                attn_mask_mel[idx, l + 1:] = 0.0
+                attn_mask_mel[idx, l + 1 :] = 0.0
 
         # Compute text embeddings + positional embeddings
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(
-            text_inputs)
+            text_inputs
+        )
 
         # Compute mel embeddings + positional embeddings
-        mel_emb = self.mel_embedding(audio_codes) + self.mel_pos_embedding(
-            audio_codes)
+        mel_emb = self.mel_embedding(audio_codes) + self.mel_pos_embedding(audio_codes)
 
         # Compute speech conditioning input
         if cond_latents is None:
@@ -1975,15 +1952,15 @@ class GPT(nn.Module):
 
         # Set paddings to -1 to ignore them in loss
         for idx, l in enumerate(text_lengths):
-            text_targets[idx, l + 1:] = -1
+            text_targets[idx, l + 1 :] = -1
 
         for idx, l in enumerate(code_lengths):
-            mel_targets[idx, l + 1:] = -1
+            mel_targets[idx, l + 1 :] = -1
 
         # check if stoptoken is in every row of mel_targets
-        assert (mel_targets == self.stop_audio_token).sum(
-        ) >= mel_targets.shape[
-            0], f" ❗ mel_targets does not contain stop token ({self.stop_audio_token}) in every row."
+        assert (
+            (mel_targets == self.stop_audio_token).sum() >= mel_targets.shape[0]
+        ), f" ❗ mel_targets does not contain stop token ({self.stop_audio_token}) in every row."
 
         # ignore the loss for the segment used for conditioning
         # coin flip for the segment to be ignored
@@ -1993,14 +1970,18 @@ class GPT(nn.Module):
             mel_targets[idx, cond_start:cond_end] = -1
 
         # Compute losses
-        loss_text = F.cross_entropy(text_logits,
-                                    text_targets.long(),
-                                    ignore_index=-1,
-                                    label_smoothing=self.label_smoothing)
-        loss_mel = F.cross_entropy(mel_logits,
-                                   mel_targets.long(),
-                                   ignore_index=-1,
-                                   label_smoothing=self.label_smoothing)
+        loss_text = F.cross_entropy(
+            text_logits,
+            text_targets.long(),
+            ignore_index=-1,
+            label_smoothing=self.label_smoothing,
+        )
+        loss_mel = F.cross_entropy(
+            mel_logits,
+            mel_targets.long(),
+            ignore_index=-1,
+            label_smoothing=self.label_smoothing,
+        )
         return loss_text.mean(), loss_mel.mean(), mel_logits
 
     def inference(self, cond_latents, text_inputs, **hf_generate_kwargs):
@@ -2014,8 +1995,7 @@ class GPT(nn.Module):
     ):
         text_inputs = F.pad(text_inputs, (0, 1), value=self.stop_text_token)
         text_inputs = F.pad(text_inputs, (1, 0), value=self.start_text_token)
-        emb = self.text_embedding(text_inputs) + self.text_pos_embedding(
-            text_inputs)
+        emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
         emb = torch.cat([cond_latents, emb], dim=1)
         self.gpt_inference.store_prefix_emb(emb)
         gpt_inputs = torch.full(
@@ -2046,8 +2026,8 @@ class GPT(nn.Module):
             **hf_generate_kwargs,
         )
         if "return_dict_in_generate" in hf_generate_kwargs:
-            return gen.sequences[:, gpt_inputs.shape[1]:], gen
-        return gen[:, gpt_inputs.shape[1]:]
+            return gen.sequences[:, gpt_inputs.shape[1] :], gen
+        return gen[:, gpt_inputs.shape[1] :]
 
     def get_generator(self, fake_inputs, **hf_generate_kwargs):
         return self.gpt_inference.generate_stream(
@@ -2062,16 +2042,18 @@ class GPT(nn.Module):
 
 
 _symbols_multilingual = {
-    "en": [(re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
-           for x in [
-               ("&", " and "),
-               ("@", " at "),
-               ("%", " percent "),
-               ("#", " hash "),
-               ("$", " dollar "),
-               ("£", " pound "),
-               ("°", " degree "),
-           ]],
+    "en": [
+        (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
+        for x in [
+            ("&", " and "),
+            ("@", " at "),
+            ("%", " percent "),
+            ("#", " hash "),
+            ("$", " dollar "),
+            ("£", " pound "),
+            ("°", " degree "),
+        ]
+    ],
     "zh": [
         # Chinese
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
@@ -2088,26 +2070,29 @@ _symbols_multilingual = {
 }
 
 _abbreviations = {
-    "en": [(re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1]) for x in [
-        ("mrs", "misess"),
-        ("mr", "mister"),
-        ("dr", "doctor"),
-        ("st", "saint"),
-        ("co", "company"),
-        ("jr", "junior"),
-        ("maj", "major"),
-        ("gen", "general"),
-        ("drs", "doctors"),
-        ("rev", "reverend"),
-        ("lt", "lieutenant"),
-        ("hon", "honorable"),
-        ("sgt", "sergeant"),
-        ("capt", "captain"),
-        ("esq", "esquire"),
-        ("ltd", "limited"),
-        ("col", "colonel"),
-        ("ft", "fort"),
-    ]],
+    "en": [
+        (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
+        for x in [
+            ("mrs", "misess"),
+            ("mr", "mister"),
+            ("dr", "doctor"),
+            ("st", "saint"),
+            ("co", "company"),
+            ("jr", "junior"),
+            ("maj", "major"),
+            ("gen", "general"),
+            ("drs", "doctors"),
+            ("rev", "reverend"),
+            ("lt", "lieutenant"),
+            ("hon", "honorable"),
+            ("sgt", "sergeant"),
+            ("capt", "captain"),
+            ("esq", "esquire"),
+            ("ltd", "limited"),
+            ("col", "colonel"),
+            ("ft", "fort"),
+        ]
+    ],
     "zh": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
@@ -2159,9 +2144,16 @@ class BaseTTS(nn.Module):
     def _set_model_args(self, config):
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
-            config_num_chars = (self.config.model_args["num_chars"] if hasattr(
-                self.config, "model_args") else self.config.num_chars)
-            num_chars = config_num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
+            config_num_chars = (
+                self.config.model_args["num_chars"]
+                if hasattr(self.config, "model_args")
+                else self.config.num_chars
+            )
+            num_chars = (
+                config_num_chars
+                if self.tokenizer is None
+                else self.tokenizer.characters.num_chars
+            )
             if hasattr(config, "characters"):
                 # if "characters" in config:
                 self.config.num_chars = num_chars
@@ -2179,10 +2171,9 @@ class BaseTTS(nn.Module):
 
 def _expand_currency(m, lang="en", currency="USD"):
     amount = float((re.sub(r"[^\d.]", "", m.group(0).replace(",", "."))))
-    full_amount = num2words(amount,
-                            to="currency",
-                            currency=currency,
-                            lang=lang if lang != "cs" else "cz")
+    full_amount = num2words(
+        amount, to="currency", currency=currency, lang=lang if lang != "cs" else "cz"
+    )
 
     and_equivalents = {
         "en": ", ",
@@ -2197,9 +2188,7 @@ def _expand_currency(m, lang="en", currency="USD"):
 
 
 def _expand_ordinal(m, lang="en"):
-    return num2words(int(m.group(1)),
-                     ordinal=True,
-                     lang=lang if lang != "cs" else "cz")
+    return num2words(int(m.group(1)), ordinal=True, lang=lang if lang != "cs" else "cz")
 
 
 def _expand_number(m, lang="en"):
@@ -2217,12 +2206,15 @@ def expand_numbers_multilingual(text, lang="en"):
     if lang == "en":
         text = re.sub(_comma_number_re, _remove_commas, text)
     try:
-        text = re.sub(_currency_re["GBP"],
-                      lambda m: _expand_currency(m, lang, "GBP"), text)
-        text = re.sub(_currency_re["USD"],
-                      lambda m: _expand_currency(m, lang, "USD"), text)
-        text = re.sub(_currency_re["EUR"],
-                      lambda m: _expand_currency(m, lang, "EUR"), text)
+        text = re.sub(
+            _currency_re["GBP"], lambda m: _expand_currency(m, lang, "GBP"), text
+        )
+        text = re.sub(
+            _currency_re["USD"], lambda m: _expand_currency(m, lang, "USD"), text
+        )
+        text = re.sub(
+            _currency_re["EUR"], lambda m: _expand_currency(m, lang, "EUR"), text
+        )
     except Exception:
         pass
     # text = re.sub(_ordinal_re[lang], lambda m: _expand_ordinal(m, lang), text)
@@ -2266,7 +2258,6 @@ def multilingual_cleaners(text, lang):
 
 
 class VoiceBpeTokenizer:
-
     def __init__(self, vocab_file=None):
         self.tokenizer = None
         if vocab_file is not None:
@@ -2305,8 +2296,7 @@ class VoiceBpeTokenizer:
     def decode(self, seq):
         if isinstance(seq, torch.Tensor):
             seq = seq.cpu().numpy()
-        txt = self.tokenizer.decode(seq, skip_special_tokens=False).replace(
-            " ", "")
+        txt = self.tokenizer.decode(seq, skip_special_tokens=False).replace(" ", "")
         txt = txt.replace("[SPACE]", " ")
         txt = txt.replace("[STOP]", "")
         txt = txt.replace("[UNK]", "")
@@ -2320,7 +2310,6 @@ class VoiceBpeTokenizer:
 
 
 class Xtts(BaseTTS):
-
     def __init__(self, config):
         super().__init__(config, ap=None, tokenizer=None)
         self.mel_stats_path = None
@@ -2331,14 +2320,13 @@ class Xtts(BaseTTS):
 
     def init_models(self):
         if self.tokenizer.tokenizer is not None:
-            self.args[
-                "gpt_number_text_tokens"] = self.tokenizer.get_number_tokens()
-            self.args[
-                "gpt_start_text_token"] = self.tokenizer.tokenizer.token_to_id(
-                    "[START]")
-            self.args[
-                "gpt_stop_text_token"] = self.tokenizer.tokenizer.token_to_id(
-                    "[STOP]")
+            self.args["gpt_number_text_tokens"] = self.tokenizer.get_number_tokens()
+            self.args["gpt_start_text_token"] = self.tokenizer.tokenizer.token_to_id(
+                "[START]"
+            )
+            self.args["gpt_stop_text_token"] = self.tokenizer.tokenizer.token_to_id(
+                "[STOP]"
+            )
 
         if self.args["gpt_number_text_tokens"]:
             self.gpt = GPT(
@@ -2354,8 +2342,7 @@ class Xtts(BaseTTS):
                 num_audio_tokens=self.args["gpt_num_audio_tokens"],
                 start_audio_token=self.args["gpt_start_audio_token"],
                 stop_audio_token=self.args["gpt_stop_audio_token"],
-                use_perceiver_resampler=self.
-                args["gpt_use_perceiver_resampler"],
+                use_perceiver_resampler=self.args["gpt_use_perceiver_resampler"],
                 code_stride_len=self.args["gpt_code_stride_len"],
             )
 
@@ -2366,8 +2353,9 @@ class Xtts(BaseTTS):
             ar_mel_length_compression=self.args["gpt_code_stride_len"],
             decoder_input_dim=self.args["decoder_input_dim"],
             d_vector_dim=self.args["d_vector_dim"],
-            cond_d_vector_in_each_upsampling_layer=self.
-            args["cond_d_vector_in_each_upsampling_layer"],
+            cond_d_vector_in_each_upsampling_layer=self.args[
+                "cond_d_vector_in_each_upsampling_layer"
+            ],
         )
 
     @property
@@ -2375,11 +2363,7 @@ class Xtts(BaseTTS):
         return next(self.parameters()).device
 
     @torch.inference_mode()
-    def get_gpt_cond_latents(self,
-                             audio,
-                             sr,
-                             length: int = 30,
-                             chunk_length: int = 6):
+    def get_gpt_cond_latents(self, audio, sr, length: int = 30, chunk_length: int = 6):
         """Compute the conditioning latents for the GPT model from the given audio.
 
         Args:
@@ -2392,11 +2376,11 @@ class Xtts(BaseTTS):
         if sr != 22050:
             audio = torchaudio.functional.resample(audio, sr, 22050)
         if length > 0:
-            audio = audio[:, :22050 * length]
+            audio = audio[:, : 22050 * length]
         if self.args["gpt_use_perceiver_resampler"]:
             style_embs = []
             for i in range(0, audio.shape[1], 22050 * chunk_length):
-                audio_chunk = audio[:, i:i + 22050 * chunk_length]
+                audio_chunk = audio[:, i : i + 22050 * chunk_length]
 
                 # if the chunk is too short ignore it
                 if audio_chunk.size(-1) < 22050 * 0.33:
@@ -2415,8 +2399,7 @@ class Xtts(BaseTTS):
                     f_max=8000,
                     n_mels=80,
                 )
-                style_emb = self.gpt.get_style_emb(mel_chunk.to(self.device),
-                                                   None)
+                style_emb = self.gpt.get_style_emb(mel_chunk.to(self.device), None)
                 style_embs.append(style_emb)
 
             # mean style embedding
@@ -2441,9 +2424,13 @@ class Xtts(BaseTTS):
     @torch.inference_mode()
     def get_speaker_embedding(self, audio, sr):
         audio_16k = torchaudio.functional.resample(audio, sr, 16000)
-        return (self.hifigan_decoder.speaker_encoder.forward(
-            audio_16k.to(self.device),
-            l2_norm=True).unsqueeze(-1).to(self.device))
+        return (
+            self.hifigan_decoder.speaker_encoder.forward(
+                audio_16k.to(self.device), l2_norm=True
+            )
+            .unsqueeze(-1)
+            .to(self.device)
+        )
 
     @torch.inference_mode()
     def get_conditioning_latents(
@@ -2478,7 +2465,7 @@ class Xtts(BaseTTS):
         speaker_embedding = None
         for file_path in audio_paths:
             audio = load_audio(file_path, load_sr)
-            audio = audio[:, :load_sr * max_ref_length].to(self.device)
+            audio = audio[:, : load_sr * max_ref_length].to(self.device)
             if sound_norm_refs:
                 audio = (audio / torch.abs(audio).max()) * 0.75
             # if librosa_trim_db is not None:
@@ -2494,10 +2481,8 @@ class Xtts(BaseTTS):
         # merge all the audios and compute the latents for the gpt
         full_audio = torch.cat(audios, dim=-1)
         gpt_cond_latents = self.get_gpt_cond_latents(
-            full_audio,
-            load_sr,
-            length=gpt_cond_len,
-            chunk_length=gpt_cond_chunk_len)  # [1, 1024, T]
+            full_audio, load_sr, length=gpt_cond_len, chunk_length=gpt_cond_chunk_len
+        )  # [1, 1024, T]
 
         if speaker_embeddings:
             speaker_embedding = torch.stack(speaker_embeddings)
@@ -2505,13 +2490,9 @@ class Xtts(BaseTTS):
 
         return gpt_cond_latents, speaker_embedding
 
-    def synthesize(self,
-                   text,
-                   config,
-                   speaker_wav,
-                   language,
-                   speaker_id=None,
-                   **kwargs):
+    def synthesize(
+        self, text, config, speaker_wav, language, speaker_id=None, **kwargs
+    ):
         """Synthesize speech with the given input text.
 
         Args:
@@ -2538,19 +2519,22 @@ class Xtts(BaseTTS):
             "top_k": config.top_k,
             "top_p": config.top_p,
         }
-        settings.update(
-            kwargs)  # allow overriding of preset settings with kwargs
+        settings.update(kwargs)  # allow overriding of preset settings with kwargs
         if speaker_id is not None:
             gpt_cond_latent, speaker_embedding = self.speaker_manager.speakers[
-                speaker_id].values()
-            return self.inference(text, language, gpt_cond_latent,
-                                  speaker_embedding, **settings)
-        settings.update({
-            "gpt_cond_len": config.gpt_cond_len,
-            "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
-            "max_ref_len": config.max_ref_len,
-            "sound_norm_refs": config.sound_norm_refs,
-        })
+                speaker_id
+            ].values()
+            return self.inference(
+                text, language, gpt_cond_latent, speaker_embedding, **settings
+            )
+        settings.update(
+            {
+                "gpt_cond_len": config.gpt_cond_len,
+                "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
+                "max_ref_len": config.max_ref_len,
+                "sound_norm_refs": config.sound_norm_refs,
+            }
+        )
         return self.full_inference(text, speaker_wav, language, **settings)
 
     @torch.inference_mode()
@@ -2658,8 +2642,7 @@ class Xtts(BaseTTS):
         gpt_cond_latent = gpt_cond_latent.to(self.device)
         speaker_embedding = speaker_embedding.to(self.device)
         if enable_text_splitting:
-            text = split_sentence(text, language,
-                                  self.tokenizer.char_limits[language])
+            text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
             text = [text]
 
@@ -2667,9 +2650,11 @@ class Xtts(BaseTTS):
         gpt_latents_list = []
         for sent in text:
             sent = sent.strip().lower()
-            text_tokens = torch.IntTensor(
-                self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(
-                    self.device)
+            text_tokens = (
+                torch.IntTensor(self.tokenizer.encode(sent, lang=language))
+                .unsqueeze(0)
+                .to(self.device)
+            )
 
             assert (
                 text_tokens.shape[-1] < self.args["gpt_max_text_tokens"]
@@ -2693,10 +2678,10 @@ class Xtts(BaseTTS):
                 )
                 expected_output_len = torch.tensor(
                     [gpt_codes.shape[-1] * self.gpt.code_stride_len],
-                    device=text_tokens.device)
+                    device=text_tokens.device,
+                )
 
-                text_len = torch.tensor([text_tokens.shape[-1]],
-                                        device=self.device)
+                text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
                 gpt_latents = self.gpt(
                     text_tokens,
                     text_len,
@@ -2708,14 +2693,18 @@ class Xtts(BaseTTS):
                 )
 
                 if length_scale != 1.0:
-                    gpt_latents = F.interpolate(gpt_latents.transpose(1, 2),
-                                                scale_factor=length_scale,
-                                                mode="linear").transpose(1, 2)
+                    gpt_latents = F.interpolate(
+                        gpt_latents.transpose(1, 2),
+                        scale_factor=length_scale,
+                        mode="linear",
+                    ).transpose(1, 2)
 
                 gpt_latents_list.append(gpt_latents.cpu())
                 wavs.append(
-                    self.hifigan_decoder(gpt_latents,
-                                         g=speaker_embedding).cpu().squeeze())
+                    self.hifigan_decoder(gpt_latents, g=speaker_embedding)
+                    .cpu()
+                    .squeeze()
+                )
 
         return {
             "wav": torch.cat(wavs, dim=0).numpy(),
@@ -2727,14 +2716,13 @@ class Xtts(BaseTTS):
         """Handle chunk formatting in streaming mode"""
         wav_chunk = wav_gen[:-overlap_len]
         if wav_gen_prev is not None:
-            wav_chunk = wav_gen[(wav_gen_prev.shape[0] -
-                                 overlap_len):-overlap_len]
+            wav_chunk = wav_gen[(wav_gen_prev.shape[0] - overlap_len) : -overlap_len]
         if wav_overlap is not None:
             # cross fade the overlap section
             if overlap_len > len(wav_chunk):
                 # wav_chunk is smaller than overlap_len, pass on last wav_gen
                 if wav_gen_prev is not None:
-                    wav_chunk = wav_gen[(wav_gen_prev.shape[0] - overlap_len):]
+                    wav_chunk = wav_gen[(wav_gen_prev.shape[0] - overlap_len) :]
                 else:
                     # not expecting will hit here as problem happens on last chunk
                     wav_chunk = wav_gen[-overlap_len:]
@@ -2742,15 +2730,16 @@ class Xtts(BaseTTS):
             else:
                 crossfade_wav = wav_chunk[:overlap_len]
                 crossfade_wav = crossfade_wav * torch.linspace(
-                    0.0, 1.0, overlap_len).to(crossfade_wav.device)
+                    0.0, 1.0, overlap_len
+                ).to(crossfade_wav.device)
                 wav_chunk[:overlap_len] = wav_overlap * torch.linspace(
-                    1.0, 0.0, overlap_len).to(wav_overlap.device)
+                    1.0, 0.0, overlap_len
+                ).to(wav_overlap.device)
                 wav_chunk[:overlap_len] += crossfade_wav
 
         wav_overlap = wav_gen[-overlap_len:]
         wav_gen_prev = wav_gen
         return wav_chunk, wav_gen_prev, wav_overlap
-
 
     def eval(self):  # pylint: disable=redefined-builtin
         """Sets the model to evaluation mode. Overrides the default eval() method to also set the GPT model to eval mode."""
@@ -2758,9 +2747,10 @@ class Xtts(BaseTTS):
         super().eval()
 
     def get_compatible_checkpoint_state_dict(self, model_path):
-
         with open(model_path, "rb") as f:
-            checkpoint = torch.load(f, map_location=torch.device("cpu"), weights_only=True)
+            checkpoint = torch.load(
+                f, map_location=torch.device("cpu"), weights_only=True
+            )
 
         return checkpoint
 
@@ -2802,13 +2792,13 @@ class Xtts(BaseTTS):
         self.hifigan_decoder.eval()
         self.gpt.init_gpt_for_inference(
             kv_cache=self.args["kv_cache"],  # kv_cacke = True
-            use_deepspeed=use_deepspeed)
+            use_deepspeed=use_deepspeed,
+        )
         self.gpt.eval()
 
 
 @dataclass
 class BaseConfig:
-
     def from_dict(self, data):
         if not isinstance(data, dict):
             raise ValueError()
@@ -2821,13 +2811,13 @@ class BaseConfig:
                     init_kwargs[field.name] = vars(self)[_field.name]
                     continue
                 raise ValueError(f' [!] Missing required field "{field.name}"')
-            #TODO handle default value
+            # TODO handle default value
             # value = data.get(field.name, _default_value(field))
             value = data.get(_field.name, None)
             if value is None:
                 init_kwargs[_field.name] = value
                 continue
-            #TODO handle _deserialize
+            # TODO handle _deserialize
             # value = _deserialize(value, _field.type)
             init_kwargs[_field.name] = value
         for k, v in init_kwargs.items():
@@ -2960,10 +2950,12 @@ class XTTSConfig(BaseConfig):
     model_args: XttsArgs = field(default_factory=XttsArgs)
     audio: XttsAudioConfig = field(default_factory=XttsAudioConfig)
     model_dir: str | None = None
-    languages: list[str] = field(default_factory=lambda: [
-        "en",
-        "zh-cn",
-    ])
+    languages: list[str] = field(
+        default_factory=lambda: [
+            "en",
+            "zh-cn",
+        ]
+    )
 
     # inference params
     temperature: float = 0.85
