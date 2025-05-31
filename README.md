@@ -1,32 +1,12 @@
-# TTS-Clone-Inference: Clean Inference and Performance Improvements
+## Install
 
-This repository contains a modified version of a TTS from coqui-ai that focuses on optimizing the inference pipeline for **clean output** and **improved performance**.
+- in root directory
 
-    - parse inference pipeline without training or other parts
+- run install.bat to install tts
 
-## Installation
+## Usage
 
-    - use poetry to install dependencies
-
-## Download models
-
-- download model from `https://huggingface.co/bruceunx/tts-clone-inference/tree/main`
-
-## change code in `main.py`
-
-```python
-
-tts = TTS(model_path="models", config_path="models/config.json", gpu=False)
-
-tts.tts_to_file(text="hello world",
-                file_path="./tmp/sample.wav",
-                speaker_wav="./tmp/output.wav",
-                enable_text_splitting=True,
-                language="en")
-
+```sh
+# check usage
+python tts_clone_inference/main.py --help
 ```
-
-## TODO
-
-- [ ] refactoring code
-- [ ] improve performance
