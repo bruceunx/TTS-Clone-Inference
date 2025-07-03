@@ -280,6 +280,12 @@ def main():
         help="Split text into sentences for processing (default: True)",
     )
 
+    parser.add_argument(
+        "--ratio",
+        type=float,
+        help="Speed ratio to apply to the output audio (e.g., 0.5 = slower, 2 = faster)",
+    )
+
     args = parser.parse_args()
 
     if args.file:
@@ -322,20 +328,38 @@ def main():
             f"Generated audio: {len(wav_array)/sample_rate:.2f} seconds at {sample_rate} Hz"
         )
 
+        final_wav = wav_array
+
+        if args.duration and args.ratio:
+            print("Error: You cannot use both --duration and --ratio at the same time.")
+            sys.exit(1)
+
         if args.duration:
             current_duration = len(wav_array) / sample_rate
             stretch_ratio = args.duration / current_duration
-
             print(
-                f"Time stretching: {current_duration:.2f}s -> {args.duration:.2f}s (ratio: {stretch_ratio:.3f})"
+                f"Time stretching to match duration: {current_duration:.2f}s -> {args.duration:.2f}s (ratio: {stretch_ratio:.3f})"
             )
+            final_wav = librosa.effects.time_stretch(wav_array, rate=1 / stretch_ratio)
 
-            stretched_wav = librosa.effects.time_stretch(
-                wav_array, rate=1 / stretch_ratio
-            )
-            final_wav = stretched_wav
-        else:
-            final_wav = wav_array
+        elif args.ratio:
+            print(f"Time stretching using speed ratio: {args.ratio}")
+            final_wav = librosa.effects.time_stretch(wav_array, rate=args.ratio)
+
+        # if args.duration:
+        #     current_duration = len(wav_array) / sample_rate
+        #     stretch_ratio = args.duration / current_duration
+        #
+        #     print(
+        #         f"Time stretching: {current_duration:.2f}s -> {args.duration:.2f}s (ratio: {stretch_ratio:.3f})"
+        #     )
+        #
+        #     stretched_wav = librosa.effects.time_stretch(
+        #         wav_array, rate=1 / stretch_ratio
+        #     )
+        #     final_wav = stretched_wav
+        # else:
+        #     final_wav = wav_array
 
         print(f"Saving audio to: {args.output}")
         syn.save_wav(wav=final_wav, path=args.output)
