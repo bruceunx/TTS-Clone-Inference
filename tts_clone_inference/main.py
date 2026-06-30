@@ -12,7 +12,7 @@ import pysbd
 from tqdm import tqdm
 import librosa
 
-from .xtts import Xtts, XTTSConfig
+from xtts import Xtts, XTTSConfig
 
 import transformers
 

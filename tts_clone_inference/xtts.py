@@ -30,7 +30,7 @@ from spacy.lang.en import English
 from num2words import num2words
 import textwrap
 import pypinyin
-from .utils import TextNorm as zh_num2words
+from utils import TextNorm as zh_num2words
 
 LRELU_SLOPE = 0.1
 
